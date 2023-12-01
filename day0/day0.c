@@ -6,111 +6,71 @@
 #include<limits.h>
 #include<assert.h>
 
-// Boundary definitions, set as required
-#define MAXX 76
-#define MAXY 26
-
-// Point structure definition
-typedef struct {
-	int x;
-	int y;
-	int z;
-} TPoint;
-
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
-
-// Print a two-dimensional array
-void printMap (char **map) {
-	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
-			printf("%c", map[y][x]);
-		}
-		printf("\n");
-	}
-}
-// Full block character for maps █
-
-
 // Read input file line by line (e.g., into an array)
-TPoint *readInput() {
+int *readInput() {
 //int readInput() {
 	FILE * input;
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
 	int count = 0;
+	int val;
+	int sum=0;
 
 	input = fopen("input.txt", "r");
 	if (input == NULL) {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
 
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TPoint *inst=(TPoint*)calloc(MAXX, sizeof(TPoint));
-
-	// Allocate a two-dimensional arrray of chars
-	// int x=0, y=0;
-	// char **map=calloc(MAXY,sizeof(char*));
-	// for(int iter=0; iter<MAXY; iter++) map[iter]=calloc(MAXX,sizeof(char));
-
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
 
-		// Read into map
-		// for(x=0; x<MAXX; x++) map[y][x] = line[x];
-		// y++;
+		int last=-1;
+		int first=-1;
 
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
+		for(int i=0; i<strlen(line); i++) {
+			val=-1;
+			if((line[i]>='1') && (line[i]<='9')) val=line[i]-'0';
+			if(!strncmp(line+i,"one",3)) val=1;
+			if(!strncmp(line+i,"two",3)) val=2;
+			if(!strncmp(line+i,"three",5)) val=3;
+			if(!strncmp(line+i,"four",4)) val=4;
+			if(!strncmp(line+i,"five",4)) val=5;
+			if(!strncmp(line+i,"six",3)) val=6;
+			if(!strncmp(line+i,"seven",5)) val=7;
+			if(!strncmp(line+i,"eight",5)) val=8;
+			if(!strncmp(line+i,"nine",4)) val=9;
 
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
+			if(val>0) {
+				if(first<0) {
+					first=val;
+					last=first;
+				}
+				else last=val;
+			}
+		}
 
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
+		if(first>0) {
+			printf("%d%d\t%s\n", first, last, line);
+			sum+=first*10+last;
+		}
 
 		count++;
 	}
+
+	printf("%d\n", sum);
 
 	fclose(input);
 	if (line)
 	free(line);
 
-//	printMap(map);
 
 	return 0;
-//	return inst;
-//	return map;
 }
 
 int main(int argc, char *argv[]) {
 
-//	TPoint *array;
-//	int i=0;	
-//	array = readInput();
 	readInput();
-
-//	for(i=0; array[i]; i++) {
-//		printf("%d\n", array[i]);
-//	}
 
 	return 0;
 }
