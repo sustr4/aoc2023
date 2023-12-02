@@ -25,8 +25,6 @@ cat $INPUT | while read line; do
 	echo Greens: $GREEN
 	echo Blues: $BLUE
 
-	LIN=$NUM
-
 	for i in $RED; do if [ $i -gt $MR ]; then MR=$i; fi done
 	for i in $GREEN; do if [ $i -gt $MG ]; then MG=$i; fi done
 	for i in $BLUE; do if [ $i -gt $MB ]; then MB=$i; fi done
