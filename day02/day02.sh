@@ -13,10 +13,6 @@ cat $INPUT | while read line; do
 	MG=0
 	MB=0
 
-	NUM=`echo $line | awk -F"[ :]" '{print $2}'`
-
-	echo l.${NUM}: $line
-
 	RED=`echo $line | grep -o '[0-9]*\sred' | awk '{print $1}'`
 	GREEN=`echo $line | grep -o '[0-9]*\sgreen' | awk '{print $1}'`
 	BLUE=`echo $line | grep -o '[0-9]*\sblue' | awk '{print $1}'`
