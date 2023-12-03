@@ -6,9 +6,13 @@
 #include<limits.h>
 #include<assert.h>
 
-// Boundary definitions, set as required
+// Boundary and input file definitions, set as required
+#define INPUT "input.txt"
 #define MAXX 76
 #define MAXY 26
+//#define INPUT "unit1.txt"
+//#define MAXX 10
+//#define MAXY 10
 
 // Point structure definition
 typedef struct {
@@ -51,7 +55,7 @@ TPoint *readInput() {
 	ssize_t read;
 	int count = 0;
 
-	input = fopen("input.txt", "r");
+	input = fopen(INPUT, "r");
 	if (input == NULL) {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
