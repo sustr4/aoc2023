@@ -29,6 +29,17 @@ void printMap (char **map) {
 }
 // Full block character for maps █
 
+// Retrieve nth neighbor from a map
+int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
+int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
+char mapnb(char **map, int y, int x, int n) {
+	assert((n>=0) && (n<8));
+	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
+	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
+	return(map[y+dy[n]][x+dx[n]]);
+}
+
+
 void printPN (int **map) {
 	int x,y;
 	for(y=0; y<MAXY; y++) {
@@ -105,7 +116,7 @@ int isnum(char c) {
 
 int main(int argc, char *argv[]) {
 
-	int x=0, y=0, dx, dy, pn=1, cn=0, inpart=0;
+	int x=0, y=0, pn=1, cn=0, inpart=0;
 	char **clean=calloc(MAXY,sizeof(char*));
 	for(int iter=0; iter<MAXY; iter++) clean[iter]=calloc(MAXX,sizeof(char));
 	int change = 0;
@@ -125,14 +136,8 @@ int main(int argc, char *argv[]) {
 		for(x=0; x<MAXY; x++) {
 			if((map[y][x]!='.') &&
 			    ((map[y][x]<'0') || (map[y][x]>'9'))) { // Symbol, all numbers around it count
-				for(dy=-1; dy<=1; dy++) {
-					for(dx=-1; dx<=1; dx++) {
-						if(y+dy<0) break;
-						if(x+dx<0) break;
-						if(x+dx>=MAXX) break;
-						if(y+dy>=MAXY) break;
-						if((map[y+dy][x+dx]>='0')&&(map[y+dy][x+dx]<='9')) clean[y+dy][x+dx]=map[y+dy][x+dx];
-					}
+				for(int n=0; n<8; n++) {
+					if((mapnb(map,y,x,n)>='0')&&(mapnb(map,y,x,n)<='9')) clean[y+dy[n]][x+dx[n]]=mapnb(map,y,x,n);
 				}
 			}
 			if(isnum(map[y][x])) {
@@ -159,14 +164,8 @@ int main(int argc, char *argv[]) {
 	for(y=0; y<MAXY; y++) {
 		for(x=0; x<MAXY; x++) {
 			if(map[y][x]!='*') continue;
-			for(dy=-1; dy<=1; dy++) {
-				for(dx=-1; dx<=1; dx++) {
-					if(y+dy<0) break;
-					if(x+dx<0) break;
-					if(x+dx>=MAXX) break;
-					if(y+dy>=MAXY) break;
-					if(isnum(map[y+dy][x+dx])) cpm[cogno[y][x]][partno[y+dy][x+dx]]++;
-				}
+			for(int n=0; n<8; n++) {
+				if(isnum(mapnb(map,y,x,n))) cpm[cogno[y][x]][partno[y+dy[n]][x+dx[n]]]++;
 			}
 		}
 	}

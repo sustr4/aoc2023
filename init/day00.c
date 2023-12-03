@@ -45,6 +45,15 @@ void printMap (char **map) {
 }
 // Full block character for maps █
 
+// Retrieve nth neighbor from a map
+int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
+int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
+char mapnb(char **map, int y, int x, int n) {
+	assert((n>=0) && (n<8));
+	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
+	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
+	return(map[y+dy[n]][x+dx[n]]);
+}
 
 // Read input file line by line (e.g., into an array)
 TPoint *readInput() {
