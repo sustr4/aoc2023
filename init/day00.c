@@ -121,6 +121,7 @@ int main(int argc, char *argv[]) {
 //	array = readInput();
 	readInput();
 
+//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 //	for(i=0; array[i]; i++) {
 //		printf("%d\n", array[i]);
 //	}
