@@ -5,6 +5,7 @@
 #include<malloc.h>
 #include<limits.h>
 #include<assert.h>
+#include<pthread.h>
 
 // Boundary and input file definitions, set as required
 #define INPUT "input.txt"
@@ -100,23 +101,72 @@ long findLocation(long from, int col, TMap **array) { // Find next mapping unles
 	return findLocation(findNext(from,col,array), col+1, array);
 }
 
-long min=LONG_MAX;
+// Structure for thread arguments
+struct ThreadArgs {
+	int no;
+	long start;
+	long count;
+	TMap **array;
+};
+
+long doSeed(struct ThreadArgs *args) { // Thread function to calculate for a single seed range
+	long min=LONG_MAX;
+	long loc;
+
+	printf("Try form %ld (range %ld)\n", args->start, args->count);
+	for(long i=args->start; i<args->start+args->count; i++) {
+		loc = findLocation(i,1,args->array);
+		if(loc<min) {
+			min=loc;
+			printf("t%02d: Seed number %ld corresponds to location %ld (min. seen so far %ld).\n", args->no, i, loc, min);
+		}
+	}
+	
+	return min;
+}
+
+
+#define NUM_THREADS 20
 
 int main(int argc, char *argv[]) {
 
+	pthread_t threads[NUM_THREADS];
+	struct ThreadArgs thread_args[NUM_THREADS];
+	void *retval;
+	int thrcount=0;
+
 	TMap **array;
-	long loc;
 	array = readInput();
 
-	for(int y=0; array[0][y].range; y+=2) { // Every two numbers
-		printf("Try form %ld (range %ld)\n", array[0][y].to, array[0][y+1].to);
-		for(long i=array[0][y].to; i<=array[0][y].to+array[0][y+1].to; i++) {
-			loc = findLocation(i,1,array);
-			if(loc<min) {
-				min=loc;
-				printf("Seed number %ld corresponds to location %ld (min. seen so far %ld).\n", i, loc, min);
-			}
+	long min=LONG_MAX;
+
+	for(int y=0; array[0][y*2].range; y++) { // Every two numbers
+		thread_args[y].start = array[0][y*2].to;
+		thread_args[y].count = array[0][y*2+1].to;
+		thread_args[y].array = array;
+		thread_args[y].no = y;
+
+		int rc = pthread_create(&threads[y], NULL, (void *(*)(void *))doSeed, (void *)&thread_args[y]);
+		if (rc) {
+		    printf("Error: Unable to create thread %d, return code %d\n", y, rc);
+		    exit(EXIT_FAILURE);
 		}
+		thrcount++;
 	}
+
+
+	// Wait for all threads to finish
+	for (int y = 0; y < thrcount; y++) {
+		int rc = pthread_join(threads[y], &retval);
+		if (rc) {
+			printf("Error: Unable to join thread %d, return code %d\n", y, rc);
+			exit(EXIT_FAILURE);
+		}
+		printf("Main: Thread %d completed with retval %ld\n", y, (long)retval);
+		if((long)retval<min) min=(long)retval;
+	}
+
+	printf("The minimum found anywhere is %ld\n", min);
+
 	return 0;
 }
