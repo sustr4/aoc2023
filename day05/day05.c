@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
 
 	for(int y=0; array[0][y].range; y+=2) { // Every two numbers
 		printf("Try form %ld (range %ld)\n", array[0][y].to, array[0][y+1].to);
+		#pragma omp parallel for private(loc) shared(min)
 		for(long i=array[0][y].to; i<=array[0][y].to+array[0][y+1].to; i++) {
 			loc = findLocation(i,1,array);
 			if(loc<min) {
