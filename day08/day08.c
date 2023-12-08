@@ -23,43 +23,11 @@ typedef struct {
 	int right;
 } TTurn;
 
+// Today's special: global variables. Who wants to return two types from a function...
 TTurn *node;
 char *instructions=0;
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
 
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
-
-// Print a two-dimensional array
-void printMap (char **map) {
-	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
-			printf("%c", map[y][x]);
-		}
-		printf("\n");
-	}
-}
-// Full block character for maps █
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
-}
-
-int encode(char *node) {
+int encode(char *node) { // Unique ID for each node.
 	int i,retval=1,offset;
 	for(i=0;i<3;i++) {
 		if(i==2) offset=1;
@@ -88,9 +56,9 @@ TTurn *readInput() {
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
 
-		if(strlen(line)<2) continue;
+		if(strlen(line)<2) continue; // Skip short (empty} lines
 
-		if(!instructions) {
+		if(!instructions) { // First line has instructions
 			instructions = strdup(line);
 			continue;
 		}
@@ -109,13 +77,6 @@ TTurn *readInput() {
 		node[id].left=encode(left);
 		node[id].right=encode(right);
 
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
-
 		count++;
 	}
 
@@ -123,39 +84,66 @@ TTurn *readInput() {
 	if (line)
 	free(line);
 
-//	printMap(map);
-
 	return node;
-//	return map;
 }
 
 int main(int argc, char *argv[]) {
 
-//	TTurn *array;
-//	int i=0;	
-//	array = readInput();
+	int i=0, y;	
 	node=(TTurn*)calloc(MAXX, sizeof(TTurn));
 
 	node = readInput();
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-	int i = encode("AAA");
-	int end = encode("ZZZ");
-	int y = 0;
-	int count = 0;
-	while(i!=end) {
+	int starts=0;
+	for(i = 0; i<MAXX; i++) if(node[i].name && node[i].name[2]=='A') starts++;
 
-		if(node[i].left) printf("%s (%d): (%s, %s), (%d %d) -> %c\n", node[i].name, i, node[i].lname, node[i].rname, node[i].left, node[i].right, instructions[y]);
+	y=0;
+	int *spoint = calloc(starts + 1, sizeof(int));
+	for(i = 0; i<MAXX; i++) if(node[i].name && node[i].name[2]=='A') spoint[y++]=i;
 
-		if(instructions[y]=='L') i=node[i].left;
-		else if(instructions[y]=='R') i=node[i].right;
-		count ++;
+	printf("There are %d gosts\n", starts);
 
-		y++;
-		if((y>=strlen(instructions)) || ((instructions[y]!='L') && (instructions[y]!='R'))) y=0;
+	long *cycles = calloc(starts + 1, sizeof(int));
+	#pragma omp parallel for
+	for(int col=0; col<starts; col++) { // For each ghost (column)
+		i = spoint[col];
+		y = 0;
+		int last = 0;
+		int count = 0;
+		while( 1 ) { // Calculate path length for ghost (column) col.
+
+	//		if(node[i].left) printf("%s (%d): (%s, %s), (%d %d) -> %c\n", node[i].name, i, node[i].lname, node[i].rname, node[i].left, node[i].right, instructions[y]);
+
+			if(instructions[y]=='L') i=node[i].left;
+			else if(instructions[y]=='R') i=node[i].right;
+			count ++;
+
+			if(node[i].name[2]=='Z') {
+				printf("%d ends up in %s every %d moves\n", col, node[i].name, count-last);
+				last=count;
+				break;
+			}
+
+			y++;
+			if((y>=strlen(instructions)) || ((instructions[y]!='L') && (instructions[y]!='R'))) y=0;
+		}
+		cycles[col]=(long)count;
 	}
 
-	printf("%d\n", count);
+	long l;
+	for(l=cycles[0]; 1; l+=cycles[0]) {
+		int fit = 1;
+
+		for(int m = 1; m<starts; m++) {
+			if(l % cycles[m]) {
+				fit=0;
+				break;
+			}
+		}
+		if(fit) break;
+	}
+
+	printf("LCD: %ld\n", l);
 
 	return 0;
 }
