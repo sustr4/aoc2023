@@ -11,49 +11,19 @@
 #define MAXX 76
 #define MAXY 202
 //#define INPUT "unit1.txt"
-//#define MAXX 10
-//#define MAXY 10
-
-// Point structure definition
-typedef struct {
-	int x;
-	int y;
-	int z;
-} TPoint;
-
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
 
 // Print a two-dimensional array
-void printMap (int **map) {
+void printMap (int **map, int *prec) {
 	int x,y;
 	for(y=0; map[y][0]; y++) {
-		for(x=0; x<map[y][0]; x++) {
-			printf("%2d%s", map[y][x], x?" ":": ");
+		printf("%d items: ", map[y][0]);
+		if (prec) printf("(%2d) ",prec[y]);
+		for(x=1; x<map[y][0]; x++) {
+			printf("%2d ", map[y][x]);
 		}
 		printf("\n");
 	}
 	printf("\n");
-}
-// Full block character for maps █
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
 }
 
 // Read input file line by line (e.g., into an array)
@@ -69,12 +39,6 @@ int **readInput() {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
 
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TPoint *inst=(TPoint*)calloc(MAXX, sizeof(TPoint));
-
-	// Allocate a two-dimensional arrray of chars
-	// int x=0, y=0;
 	int **map=calloc(MAXY,sizeof(int*));
 	for(int iter=0; iter<MAXY; iter++) map[iter]=calloc(MAXX,sizeof(int));
 
@@ -103,25 +67,21 @@ int **readInput() {
 
 int main(int argc, char *argv[]) {
 
-//	TPoint *array;
-	int i=0,l,sum=0;	
-//	array = readInput();
+	int i=0,l,sum=0,precsum=0;	
 	int **map=readInput();
 
-	printMap(map);
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
+	printMap(map, NULL);
 	for(l=0; map[l][0]; l++) {
 
 //		printf("Alloc line %d, size %dx%d\n", l, map[l][0]+1, map[l][0]+1);
 		int **hist=calloc(map[l][0]+1,sizeof(int*));
 		for(int iter=0; iter<=map[l][0]; iter++) hist[iter]=calloc(map[l][0]+1,sizeof(int));
-
-//		printf("First value of first history appears to be %d\n", hist[1][0]);
+		int *prec=calloc(map[l][0]+1,sizeof(int)); // Yes, this is an afterthought, but not mine ;-)
 
 		// Copy the first line
 		for(i=0; i<map[l][0]; i++) hist[0][i]=map[l][i];
 		
-		// Count te diffs
+		// Count the diffs
 		int h = 0;
 		while( 1 ) {
 			int allNull=1;
@@ -132,32 +92,33 @@ int main(int argc, char *argv[]) {
 			}
 			hist[++h][0]=i;
 			if(allNull) break;
-//		printMap(hist);
 		}
 
-		printMap(hist);
+		printMap(hist, NULL);
 
 		printf("Now from history no. %d back\n\n", h);
 
 		hist[h][0]++;
 		int newi=0;
-		for(h=h-1; h>=0; h--) {
+		for(h=h-1; h>=0; h--) { // Count lines back
 			newi = hist[h][0]++;
 			hist[h][newi] = hist[h][newi-1] + hist[h+1][newi-1];
-
-//			printf("Summing %d with %d\n", hist[h][newi-1], hist[h+1][newi-1]);
+			prec[h] = hist[h][1] - prec[h+1];
 		}
 
-		printMap(hist);
+		printMap(hist, prec);
 
 		sum+=hist[0][newi];
+		precsum+=prec[0];
 
 		for(int iter=0; iter<=map[l][0]; iter++) free(hist[iter]);
 		free(hist);
+		free(prec);
 
 	}
 
-	printf("Sum: %d\n", sum);
+	printf("Sum (task 1): %d\n", sum);
+	printf("Prec sum (task 2): %d\n", precsum);
 
 	return 0;
 }
