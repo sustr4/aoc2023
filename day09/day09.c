@@ -87,8 +87,7 @@ int main(int argc, char *argv[]) {
 			int allNull=1;
 			for(i=1; i<hist[h][0]-1; i++) {
 //				printf("Diffing %d (%d) vs. %d (%d).\n", i, hist[h][i], i+1, hist[h][i+1]);
-				hist[h+1][i]=hist[h][i+1]-hist[h][i];
-				if(hist[h+1][i]) allNull = 0;
+				if((hist[h+1][i]=hist[h][i+1]-hist[h][i])) allNull = 0;
 			}
 			hist[++h][0]=i;
 			if(allNull) break;
