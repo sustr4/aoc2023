@@ -7,10 +7,10 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-//#define INPUT "input.txt"
+#define INPUT "input.txt"
 #define MAXX 76
-#define MAXY 200
-#define INPUT "unit1.txt"
+#define MAXY 202
+//#define INPUT "unit1.txt"
 //#define MAXX 10
 //#define MAXY 10
 
@@ -37,11 +37,12 @@ int comp(const void *a, const void *b)
 void printMap (int **map) {
 	int x,y;
 	for(y=0; map[y][0]; y++) {
-		for(x=1; x<map[y][0]; x++) {
-			printf("%d ", map[y][x]);
+		for(x=0; x<map[y][0]; x++) {
+			printf("%2d%s", map[y][x], x?" ":": ");
 		}
 		printf("\n");
 	}
+	printf("\n");
 }
 // Full block character for maps █
 
@@ -80,18 +81,6 @@ int **readInput() {
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
 
-		// Read into map
-		// for(x=0; x<MAXX; x++) map[y][x] = line[x];
-		// y++;
-
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
-
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
-
 		// Read tokens from single line
 		char *token;
 		token = strtok(line, " ");
@@ -115,15 +104,60 @@ int **readInput() {
 int main(int argc, char *argv[]) {
 
 //	TPoint *array;
-//	int i=0;	
+	int i=0,l,sum=0;	
 //	array = readInput();
 	int **map=readInput();
 
 	printMap(map);
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-//	for(i=0; array[i]; i++) {
-//		printf("%d\n", array[i]);
-//	}
+	for(l=0; map[l][0]; l++) {
+
+//		printf("Alloc line %d, size %dx%d\n", l, map[l][0]+1, map[l][0]+1);
+		int **hist=calloc(map[l][0]+1,sizeof(int*));
+		for(int iter=0; iter<=map[l][0]; iter++) hist[iter]=calloc(map[l][0]+1,sizeof(int));
+
+//		printf("First value of first history appears to be %d\n", hist[1][0]);
+
+		// Copy the first line
+		for(i=0; i<map[l][0]; i++) hist[0][i]=map[l][i];
+		
+		// Count te diffs
+		int h = 0;
+		while( 1 ) {
+			int allNull=1;
+			for(i=1; i<hist[h][0]-1; i++) {
+//				printf("Diffing %d (%d) vs. %d (%d).\n", i, hist[h][i], i+1, hist[h][i+1]);
+				hist[h+1][i]=hist[h][i+1]-hist[h][i];
+				if(hist[h+1][i]) allNull = 0;
+			}
+			hist[++h][0]=i;
+			if(allNull) break;
+//		printMap(hist);
+		}
+
+		printMap(hist);
+
+		printf("Now from history no. %d back\n\n", h);
+
+		hist[h][0]++;
+		int newi=0;
+		for(h=h-1; h>=0; h--) {
+			newi = hist[h][0]++;
+			hist[h][newi] = hist[h][newi-1] + hist[h+1][newi-1];
+
+//			printf("Summing %d with %d\n", hist[h][newi-1], hist[h+1][newi-1]);
+		}
+
+		printMap(hist);
+
+		sum+=hist[0][newi];
+
+		for(int iter=0; iter<=map[l][0]; iter++) free(hist[iter]);
+		free(hist);
+
+	}
+
+	printf("Sum: %d\n", sum);
 
 	return 0;
 }
