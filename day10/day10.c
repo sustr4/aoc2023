@@ -12,7 +12,7 @@
 #define MAXY 140
 //#define INPUT "unit1.txt"
 //#define MAXX 10
-//#define MAXY 10
+//#define MAXY 9
 
 // Point structure definition
 typedef struct {
@@ -22,18 +22,6 @@ typedef struct {
 	int west;
 	int dist;
 } TPoint;
-
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
 
 // Print a two-dimensional array
 void printDijk (TPoint **dijk) {
@@ -46,25 +34,18 @@ void printDijk (TPoint **dijk) {
 		printf("\n");
 	}
 }
-void printMap (char **map) {
+
+// Print an enlarged map
+void printThree (char **map) {
 	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
-			printf("%c", map[y][x]);
+	for(y=0; y<MAXY*3; y++) {
+		for(x=0; x<MAXX*3; x++) {
+			if(map[y][x]=='X') printf("█");
+			else if(map[y][x]=='.') printf(".");
+			else printf(" ");
 		}
 		printf("\n");
 	}
-}
-// Full block character for maps █
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
 }
 
 // Read input file line by line (e.g., into an array)
@@ -74,16 +55,11 @@ char **readInput() {
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
-	int count = 0;
 
 	input = fopen(INPUT, "r");
 	if (input == NULL) {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
-
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TPoint *inst=(TPoint*)calloc(MAXX, sizeof(TPoint));
 
 	// Allocate a two-dimensional arrray of chars
 	int x=0, y=0;
@@ -96,41 +72,18 @@ char **readInput() {
 		// Read into map
 		for(x=0; x<MAXX; x++) map[y][x] = line[x];
 		y++;
-
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
-
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
-
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
-
-		count++;
 	}
 
 	fclose(input);
 	if (line)
 	free(line);
 
-//	printMap(map);
-
 	return map;
 }
 
 int main(int argc, char *argv[]) {
 
-//	TPoint *array;
-//	int i=0;	
-//	array = readInput();
 	char **map=readInput();
-
 	int x=0, y=0;
 
 	// Set up distance matrix	
@@ -175,15 +128,9 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
-		}
-	}
-
-
 	int curr = 1;
 
-//	for(int k=0; k<2; k++) {
+	// Grow the distance matrix
 	while(1) {
 		int change=0;
 
@@ -210,21 +157,64 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
-
-//	printDijk(dijk);
-		printf("Round %d: %d changes\n", curr, change);
 		if(!change) break;
 		curr++;
 	}
 
 	printDijk(dijk);
-
 	printf("Furthest %d steps\n", curr-1);
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-//	for(i=0; array[i]; i++) {
-//		printf("%d\n", array[i]);
-//	}
+	// Let's make an enlarged view
+	char **three=calloc(MAXY*3,sizeof(char*));
+	for(int iter=0; iter<MAXY*3; iter++) three[iter]=calloc(MAXX*3,sizeof(char));
+
+	for(y=0; y<MAXY; y++) {
+		for(x=0; x<MAXX; x++) {
+			if(dijk[y][x].dist) {
+				three[y*3+1][x*3+1]='X';
+				if(dijk[y][x].north) three[y*3][x*3+1]='X';
+				if(dijk[y][x].south) three[y*3+2][x*3+1]='X';
+				if(dijk[y][x].west) three[y*3+1][x*3]='X';
+				if(dijk[y][x].east) three[y*3+1][x*3+2]='X';
+			}
+		}
+	}
+	for(y=0; y<MAXY*3; y++) {
+		if(!three[y][0]) three[y][0]='.';
+		if(!three[y][MAXX*3-1]) three[y][MAXX*3-1]='.';
+	}
+	for(x=0; x<MAXX*3; x++) {
+		if(!three[0][x]) three[0][x]='.';
+		if(!three[MAXY*3-1][x]) three[MAXY*3-1][x]='.';
+	}
+
+	while( 1 ) {
+		int change=0;
+
+		for(y=1; y<MAXY*3-1; y++) {
+			for(x=1; x<MAXX*3-1; x++) {
+				if(!three[y][x]) {
+					if(three[y-1][x]=='.') { three[y][x]='.'; change = 1; }
+					if(three[y+1][x]=='.') { three[y][x]='.'; change = 1; }
+					if(three[y][x-1]=='.') { three[y][x]='.'; change = 1; }
+					if(three[y][x+1]=='.') { three[y][x]='.'; change = 1; }
+				}
+			}
+		}
+
+		if(!change) break;
+	}
+
+	printThree(three);
+
+	int count=0;
+	for(y=0; y<MAXY; y++) {
+		for(x=0; x<MAXX; x++) {
+			if(three[y*3 + 1][x*3 + 1]==0) count ++;
+		}
+	}
+
+	printf("Inside: %d\n", count);
 
 	return 0;
 }
