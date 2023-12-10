@@ -8,11 +8,15 @@
 
 // Boundary and input file definitions, set as required
 #define INPUT "input.txt"
+//#define INPUT "input-b.txt"
 #define MAXX 140
 #define MAXY 140
 //#define INPUT "unit1.txt"
 //#define MAXX 10
 //#define MAXY 9
+//#define INPUT "unit0.txt"
+//#define MAXX 5
+//#define MAXY 5
 
 // Point structure definition
 typedef struct {
@@ -27,9 +31,49 @@ typedef struct {
 void printDijk (TPoint **dijk) {
 	int x,y;
 	for(y=0; y<MAXY; y++) {
+		printf("%3d:\t",y);
 		for(x=0; x<MAXX; x++) {
 			if(dijk[y][x].dist) printf("%d", dijk[y][x].dist%10);
 			else printf(" ");
+		}
+		printf("\n");
+	}
+}
+
+// Print a pipe
+void printPipe (char **map, TPoint **dijk) {
+	int x,y;
+	for(y=0; y<MAXY; y++) {
+		printf("%3d:\t", y);
+		for(x=0; x<MAXX; x++) {
+			if(!dijk[y][x].dist) { printf(" "); continue; }
+			switch(map[y][x]) {
+
+			case '|':
+				printf("┃");
+				break;
+			case '-':
+				printf("━");
+				break;
+			case 'L':
+				printf("┗");
+				break;
+			case 'J':
+				printf("┛");
+				break;
+			case '7':
+				printf("┓");
+				break;
+			case 'F':
+				printf("┏");
+				break;
+			case '.':
+				printf(" ");
+				break;
+			case 'S':
+				printf("╋");
+				break;
+			}
 		}
 		printf("\n");
 	}
@@ -130,10 +174,13 @@ int main(int argc, char *argv[]) {
 
 	int curr = 1;
 
+	printf("Found the starting point at the shortest distance:\n");
+	printDijk(dijk);
 	// Grow the distance matrix
 	while(1) {
 		int change=0;
 
+		printf("Searching from distance %d:\n", curr);
 		for(y=0; y<MAXY; y++) {
 			for(x=0; x<MAXX; x++) {
 				if(dijk[y][x].dist==curr) {
@@ -158,12 +205,16 @@ int main(int argc, char *argv[]) {
 			}
 		}
 		if(!change) break;
+		printf("%d new points found from distance %d\n\n", change, curr);
 		curr++;
+		printDijk(dijk);
 	}
+
 
 	printDijk(dijk);
 	printf("Furthest %d steps\n", curr-1);
 
+	printPipe(map, dijk);
 	// Let's make an enlarged view
 	char **three=calloc(MAXY*3,sizeof(char*));
 	for(int iter=0; iter<MAXY*3; iter++) three[iter]=calloc(MAXX*3,sizeof(char));
