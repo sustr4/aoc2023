@@ -7,12 +7,12 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-#define INPUT "input.txt"
-#define MAXX 140
-#define MAXY 140
-//#define INPUT "unit1.txt"
-//#define MAXX 10
-//#define MAXY 10
+//#define INPUT "input.txt"
+//#define MAXX 140
+//#define MAXY 140
+#define INPUT "unit1.txt"
+#define MAXX 10
+#define MAXY 10
 
 // Point structure definition
 typedef struct {
@@ -159,8 +159,9 @@ void expand(TGalaxy *gal, int count) {
 	
 }
 
-int dist(TGalaxy *gal, int count) {
-	int i,j, sum = 0;
+long dist(TGalaxy *gal, int count) {
+	int i,j;
+	long sum = 0;
 
 	for(i=0; i<count; i++) {
 		for(j=i+1; j<count; j++) {
@@ -192,7 +193,7 @@ int main(int argc, char *argv[]) {
 //		printf("%d\n", array[i]);
 //	}
 
-	printf("Sum: %d\n", dist(gal, count));
+	printf("Sum: %ld\n", dist(gal, count));
 
 	return 0;
 }
