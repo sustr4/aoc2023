@@ -7,12 +7,12 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-//#define INPUT "input.txt"
-//#define MAXX 140
-//#define MAXY 140
-#define INPUT "unit1.txt"
-#define MAXX 10
-#define MAXY 10
+#define INPUT "input.txt"
+#define MAXX 140
+#define MAXY 140
+//#define INPUT "unit1.txt"
+//#define MAXX 10
+//#define MAXY 10
 
 // Point structure definition
 typedef struct {
