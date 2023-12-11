@@ -43,7 +43,7 @@ void printMap (char **map) {
 		printf("\n");
 	}
 }
-// Full block character for maps █
+// Full block character for maps █ and border elements ┃━┗┛┏┓
 
 // Retrieve nth neighbor from a map
 int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
