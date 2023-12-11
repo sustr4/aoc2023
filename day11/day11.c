@@ -138,8 +138,8 @@ void expand(TGalaxy *gal, int count) {
 	int *hei=calloc(MAXY, sizeof(int));
 	int i;
 
-	for(i=0; i<MAXX; i++) len[i]=1; //Assume all exapnd
-	for(i=0; i<MAXY; i++) hei[i]=1;
+	for(i=0; i<MAXX; i++) len[i]=999999; //Assume all exapnd
+	for(i=0; i<MAXY; i++) hei[i]=999999;
 	
 	for(i=0; i<count; i++) {
 		len[gal[i].x] = 0; // Don't exapnd those that have galaxies
