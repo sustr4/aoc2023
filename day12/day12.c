@@ -8,7 +8,7 @@
 
 // Boundary and input file definitions, set as required
 //#define INPUT "input.txt"
-#define MAXX 6
+#define MAXX 7
 #define MAXY 1000
 #define INPUT "unit1.txt"
 //#define MAXX 10
@@ -17,6 +17,7 @@
 // Point structure definition
 typedef struct {
 	char *map;
+	int vars; // Possible variations based on ?
 	int *ops;
 } TLine;
 
@@ -102,9 +103,71 @@ TLine *readInput() {
 	return inst;
 }
 
+void countVars(TLine *array) {
+	for(int i=0; array[i].map; i++) {
+		array[i].vars=1;
+		for(int y=0; y<strlen(array[i].map); y++) {
+			if(array[i].map[y]=='?') array[i].vars=array[i].vars << 1;
+		}
+	}
+}
+
+char *variation(int num, TLine line) {
+
+	if(num>=line.vars) return NULL;
+
+	char *map=strdup(line.map);
+	int q=-1;
+	for(int i=0; i<strlen(map); i++) {
+		if(map[i]=='?') {
+			q++;
+			int bit=1<<q;
+			if(num & bit) map[i]='#';
+			else map[i]='.';
+		}
+	}
+
+	return map;
+}
+
+int *sum(char *map) {
+
+	int *sum = calloc(MAXX, sizeof(int));
+	int inq = 0;
+	int y = -1;
+
+	for(int i=0; i<strlen(map); i++) {
+		if(map[i]=='#') {
+			if(inq) sum[y]++;
+			else {
+				sum[++y]=1;
+				inq=1;
+			}
+		}
+		else inq=0;
+	}
+
+	return sum;
+}
+
+int compare(int *a, int *b) {
+
+	int la, lb;
+	for(la=0; a[la]; la++);
+	for(lb=0; b[lb]; lb++);
+
+	if(la!=lb) return 0;
+
+	for(int y=0; y<=la; y++) {
+		if(a[y]!=b[y]) return 0;
+	}
+	return 1;
+}
+
 int main(int argc, char *argv[]) {
 
 	TLine *array = readInput();
+	countVars(array);
 	int i=0;	
 //	array = readInput();
 
@@ -112,7 +175,31 @@ int main(int argc, char *argv[]) {
 	for(i=0; array[i].map; i++) {
 		printf("%s\t", array[i].map);
 		for(int y=0; array[i].ops[y]; y++) printf("%d, ", array[i].ops[y]);
-		printf("\n");
+		printf("\t%d variations\n", array[i].vars);
+	}
+
+	int total=0;
+
+	for(int line=0; array[line].map; line++) {
+		i=0;
+		while (1) {
+
+			char *v=variation(i++, array[line]);
+			if(!v) break;
+
+
+			int *s=sum(v);
+			if(compare(s, array[line].ops)) {
+				printf("l%04d:\t%3d: %s\t", line, i, v);
+				for(int y=0; s[y]; y++) printf("%d, ", s[y]);
+				total++;
+				printf(" match %d!\n", total);
+			}
+
+
+			free(v);
+			free(s);
+		}
 	}
 
 	return 0;
