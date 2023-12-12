@@ -7,10 +7,10 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-//#define INPUT "input.txt"
+#define INPUT "input.txt"
 #define MAXX 7
-#define MAXY 1000
-#define INPUT "unit1.txt"
+#define MAXY 1001
+//#define INPUT "unit1.txt"
 //#define MAXX 10
 //#define MAXY 10
 
@@ -70,7 +70,7 @@ TLine *readInput() {
 
 	// Allocate one-dimensional array of strings
 	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	TLine *inst=(TLine*)calloc(MAXX, sizeof(TLine));
+	TLine *inst=(TLine*)calloc(MAXY, sizeof(TLine));
 
 	// Allocate a two-dimensional arrray of chars
 	// int x=0, y=0;
