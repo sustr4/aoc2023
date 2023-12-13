@@ -6,9 +6,11 @@
 #include<limits.h>
 #include<assert.h>
 
+long total=0;
+
 // Boundary and input file definitions, set as required
 #define INPUT "input.txt"
-#define MAXX 7
+#define MAXX 35
 #define MAXY 1001
 //#define INPUT "unit1.txt"
 //#define MAXX 10
@@ -17,8 +19,12 @@
 // Point structure definition
 typedef struct {
 	char *map;
-	int vars; // Possible variations based on ?
+	long vars; // Possible variations based on ?
 	int *ops;
+	int maxop;
+	int has;
+	int needs;
+	int ques;
 } TLine;
 
 // Comparator function example
@@ -55,6 +61,17 @@ char mapnb(char **map, int y, int x, int n) {
 	return(map[y+dy[n]][x+dx[n]]);
 }
 
+void multiply(int *vars) {
+	int l;
+	for(l=0; vars[l]; l++);
+
+	for(int i=0; i<l; i++) {
+		for(int y=1; y<5; y++) {
+			vars[y*l+i]=vars[i];
+		}
+	}
+}
+
 // Read input file line by line (e.g., into an array)
 TLine *readInput() {
 	FILE * input;
@@ -86,12 +103,22 @@ TLine *readInput() {
 
 		// Read tokens from single line
 		char *token;
-		inst[count].map = strdup(strtok(line, " "));
+		token = strtok(line, " ");
+		asprintf(&(inst[count].map), "%s?%s?%s?%s?%s", token, token, token, token, token);
+		for(int ii=0; ii<=strlen(inst[count].map); ii++) {
+			if (inst[count].map[ii]=='#') inst[count].has++;
+			if (inst[count].map[ii]=='?') inst[count].ques++;
+		}
 		int y=0;
 		while( 1 ) {
 			if(!(token = strtok(NULL, ","))) break;
-			inst[count].ops[y++] = atoi(token);
+			inst[count].ops[y] = atoi(token);
+			inst[count].needs+=inst[count].ops[y];
+			y++;
 		}
+		multiply(inst[count].ops);
+		inst[count].needs*=5;
+		for(inst[count].maxop=0; inst[count].ops[inst[count].maxop]; inst[count].maxop++);
 
 		count++;
 	}
@@ -102,6 +129,7 @@ TLine *readInput() {
 
 	return inst;
 }
+
 
 void countVars(TLine *array) {
 	for(int i=0; array[i].map; i++) {
@@ -164,6 +192,53 @@ int compare(int *a, int *b) {
 	return 1;
 }
 
+int next(char* map, int op, int maxop, int *ops) {
+
+
+//	printf("%90s (%2ld) (%d/%d: %d)\n", map, strlen(map), op, maxop, ops[op]);
+
+	if(map[0]==0) {
+		if(op==maxop) total++;
+		// TODO: This will need some cheking
+		return 0;
+	}
+
+	if(op==maxop) { // operational vents used up. Only empties must remain
+		int k=0;
+		while(map[k]) if(map[k++]=='#') return 0;
+	} 
+
+	if(map[0]=='.') next(map + 1, op, maxop, ops);
+
+	if(map[0]=='#') {
+//		printf("Yes, the hash is reconized\n");
+		if(strlen(map)<ops[op]) return 0; // map too short
+//		printf("and not too short\n");
+		int y;
+		for(y=0; y<ops[op]; y++) {
+			if(map[y]=='.') return 0; // there is a gap in the run
+		}
+//		printf("Run for %d, next character is %c.\n",y,map[y]);
+		if(map[y]=='.')		next(map+y+1, op+1, maxop, ops); // Skip safely the border character
+		else if(map[y]=='?')	next(map+y+1, op+1, maxop, ops); // Skip safely the border character
+		else if(map[y]==0)	next(map+y, op+1, maxop, ops); // This will be the final check
+
+		return 0; // The run is too long. A dot or end of string must follow
+	}
+	
+	if(map[0]=='?') {
+		map[0]='#';
+		next(map, op, maxop, ops);
+
+		map[0]='.';
+		next(map, op, maxop, ops);
+		
+		map[0]='?';
+	}
+
+	return 0;
+} 
+
 int main(int argc, char *argv[]) {
 
 	TLine *array = readInput();
@@ -171,16 +246,32 @@ int main(int argc, char *argv[]) {
 	int i=0;	
 //	array = readInput();
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-	for(i=0; array[i].map; i++) {
-		printf("%s\t", array[i].map);
+/*	for(i=0; array[i].map; i++) {
+		printf("l%04d:\n\t%s\n\t", i, array[i].map);
 		for(int y=0; array[i].ops[y]; y++) printf("%d, ", array[i].ops[y]);
-		printf("\t%d variations\n", array[i].vars);
+		printf("\n\t=> %ld variations\n", array[i].vars);
+		long long perm = 1;
+		for(int ii=array[i].needs - array[i].has +1; ii<=array[i].ques; ii++) perm*=ii;
+		printf("\t.. has %d hashes, needs %d, therefore misses %d in %d places => %lld permutations.\n", array[i].has, array[i].needs, array[i].needs - array[i].has, array[i].ques, perm);
+	}*/
+
+
+	#pragma omp parallel for shared(total)
+	for(int line=0; line<MAXY; line++) {
+		if(!array[line].map) continue;
+		next(array[line].map, 0, array[line].maxop, array[line].ops);
+		printf("%4d:\t%ld\n", line, total);
 	}
 
-	int total=0;
+	printf("Total: %ld\n", total);
 
-	for(int line=0; array[line].map; line++) {
+	return 0; // TODO Fix adn remove
+
+
+	#pragma omp parallel for shared(total)
+	for(int line=0; line<MAXY; line++) {
+		if(!array[line].map) continue;
+		printf("Line %d (total so far %ld)\n", line, total);
 		i=0;
 		while (1) {
 
@@ -190,10 +281,10 @@ int main(int argc, char *argv[]) {
 
 			int *s=sum(v);
 			if(compare(s, array[line].ops)) {
-				printf("l%04d:\t%3d: %s\t", line, i, v);
-				for(int y=0; s[y]; y++) printf("%d, ", s[y]);
+//				printf("l%04d:\t%3d: %s\t", line, i, v);
+//				for(int y=0; s[y]; y++) printf("%d, ", s[y]);
 				total++;
-				printf(" match %d!\n", total);
+//				printf(" match %ld!\n", total);
 			}
 
 
@@ -201,6 +292,7 @@ int main(int argc, char *argv[]) {
 			free(s);
 		}
 	}
+	printf("Total: %ld\n", total);
 
 	return 0;
 }
