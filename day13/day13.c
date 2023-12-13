@@ -11,7 +11,7 @@
 #define MAXX 40
 #define MAXY 40
 #define MAXZ 101
-//#define INPUT "unit2.txt"
+//#define INPUT "unit1.txt"
 //#define MAXX 10
 //#define MAXY 10
 
@@ -128,7 +128,7 @@ int checkMirror(char **map) {
 	// Horizontal
 
 
-	for(d=2-mx+mx%2; d<mx-1; d+=2) {
+	for(d=2-mx; d<=mx-2; d+=2) {
 		int allfit=1;
 		int lookingat=0;
 		char **test=(char**)calloc(MAXY,sizeof(char*));
@@ -177,7 +177,6 @@ int checkMirror(char **map) {
 	for(int ater=0; ater<MAXY; ater++) free(mirror[ater]);
 	free(mirror);
 
-	assert(retVal);
 	return retVal;
 }
 
@@ -185,16 +184,45 @@ int main(int argc, char *argv[]) {
 
 	int i=0, sum = 0;	
 	char ***maps = readInput();
+	int score;
 
 	i=1;
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-//	for(i=0; maps[i][0][0]; i++) {
+	for(i=0; maps[i][0][0]; i++) {
 		printMap(maps[i]);
 		printf("%d\n\n",i);
-		sum+=checkMirror(maps[i]);
+		score=checkMirror(maps[i]);
+		if(!score) {
+			// Rotate
+			int x=0, y=0, my, mx;
+			char **rot=calloc(MAXY,sizeof(char*));
+			for(int iter=0; iter<MAXY; iter++) rot[iter]=calloc(MAXX,sizeof(char));
 
+			for(mx=0; maps[i][0][mx]; mx++);
+			for(my=0; maps[i][my][0]; my++);
 
-//	}
+			printf("Original dimensions %dx%d, rotated dimenstions %dx%d\n", mx, my, my, mx);
+
+			for(y=0; y<my; y++)
+				for(x=0; x<mx; x++)
+					rot[mx-x-1][y]=maps[i][y][x];
+
+			printf("Trying rotation:\n");
+
+			printMap(rot);
+
+			score=100*checkMirror(rot);
+
+			for(int iter=0; iter<MAXY; iter++) free(rot[iter]);
+			free(rot);
+			
+		}
+
+		sum+=score;
+
+		assert(score);
+
+	}
 
 	printf("Sum: %d\n", sum);
 
