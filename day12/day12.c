@@ -25,6 +25,7 @@ typedef struct {
 	int has;
 	int needs;
 	int ques;
+	int *mustremain;
 } TLine;
 
 // Comparator function example
@@ -119,6 +120,13 @@ TLine *readInput() {
 		multiply(inst[count].ops);
 		inst[count].needs*=5;
 		for(inst[count].maxop=0; inst[count].ops[inst[count].maxop]; inst[count].maxop++);
+
+		for(int j=0; j<inst[count].maxop; j++) {
+			inst[count].mustremain=-1;
+			for(int k=j; j<inst[count].maxop; j++) {
+				inst[count].mustremain+=1+inst[count].ops[k];
+			}
+		}
 
 		count++;
 	}
@@ -228,12 +236,10 @@ int next(char* map, int op, int maxop, int *ops) {
 	
 	if(map[0]=='?') {
 		map[0]='#';
-		next(map, op, maxop, ops);
-
-		map[0]='.';
-		next(map, op, maxop, ops);
-		
+		next(map, op, maxop, ops); // Like '#'
 		map[0]='?';
+
+		next(map+1, op, maxop, ops); // Like '.'
 	}
 
 	return 0;
