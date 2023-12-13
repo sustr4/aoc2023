@@ -12,7 +12,7 @@ long total=0;
 #define INPUT "input.txt"
 #define MAXX 35
 #define MAXY 1001
-//#define INPUT "unit1.txt"
+//#define INPUT "unit2.txt"
 //#define MAXX 10
 //#define MAXY 10
 
@@ -105,42 +105,35 @@ long next(char* wholemap, int offset, int op, int maxop, int *ops, int *maxoff, 
 
 //	printf("%90s (%2ld) (%d/%d: %d)\n", map, strlen(map), op, maxop, ops[op]);
 
-	if(map[0]==0) {
-		if(op==maxop) { total++; }
-		// TODO: This will need some cheking
+	if(map[0]==0) { // Reached the end of the string ('\0')
+		if(op==maxop) total++;
 		return 1;
 	}
 
-	if(op==maxop) { // operational vents used up. Only empties must remain
+	if(op==maxop) { // operational vents used up from list. Only dots (or qestion marks) must remain
 		int k=0;
 		while(map[k]) if(map[k++]=='#') return 0;
 	} 
 
-	if(offset>maxoff[op]) {
-//		printf("Offset %d, maximum %d\n", offset, maxoff[op]);
-		return 0;
-	}
+	if(offset>maxoff[op]) return 0; // With this offset, there is no more room to fit all the vents that have yet to appear
 
-
+	// string starts with dot. Just move to the next one
 	if(map[0]=='.') nextWrap(wholemap, offset + 1, op, maxop, ops, maxoff, accel);
 
+	// string starts with hash. See if there is the right amount of those
 	if(map[0]=='#') {
-//		printf("Yes, the hash is reconized\n");
-		if(strlen(map)<ops[op]) return 0; // map too short
-//		printf("and not too short\n");
+		if(strlen(map)<ops[op]) return 0; // map is too short to fit all the required hashes
 		int y;
-		for(y=0; y<ops[op]; y++) {
-			if(map[y]=='.') return 0; // there is a gap in the run
-		}
-//		printf("Run for %d, next character is %c.\n",y,map[y]);
+		for(y=0; y<ops[op]; y++) 
+			if(map[y]=='.') return 0; // there is a gap in the run -- not as many hashes as required
 		if(map[y]=='.')		nextWrap(wholemap, offset+y+1, op+1, maxop, ops, maxoff, accel); // Skip safely the border character
 		else if(map[y]=='?')	nextWrap(wholemap, offset+y+1, op+1, maxop, ops, maxoff, accel); // Skip safely the border character
-		else if(map[y]==0)	nextWrap(wholemap, offset+y, op+1, maxop, ops, maxoff, accel); // This will be the final check
+		else if(map[y]==0)	nextWrap(wholemap, offset+y, op+1, maxop, ops, maxoff, accel); // End of string. This will be the final check
 
 		return 0; // The run is too long. A dot or end of string must follow
 	}
 	
-	if(map[0]=='?') {
+	if(map[0]=='?') { // The next character is a question mark. Try substituting it with both
 		map[0]='#';
 		nextWrap(wholemap, offset, op, maxop, ops, maxoff, accel); // Like '#'
 		map[0]='?';
@@ -194,7 +187,8 @@ int main(int argc, char *argv[]) {
 		}
 
 		next(array[line].map, 0, 0, array[line].maxop, array[line].ops, array[line].maxoffset, accel);
-		
+	
+
 		for(int iter=0; iter<=strlen(array[line].map); iter++) free(accel[iter]);
 		free(accel);
 	}
