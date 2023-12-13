@@ -6,9 +6,11 @@
 #include<limits.h>
 #include<assert.h>
 
+long total=0;
+
 // Boundary and input file definitions, set as required
 #define INPUT "input.txt"
-#define MAXX 7
+#define MAXX 35
 #define MAXY 1001
 //#define INPUT "unit1.txt"
 //#define MAXX 10
@@ -17,42 +19,23 @@
 // Point structure definition
 typedef struct {
 	char *map;
-	int vars; // Possible variations based on ?
 	int *ops;
+	int maxop;
+	int has;
+	int needs;
+	int ques;
+	int *maxoffset;
 } TLine;
 
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
+void multiply(int *vars) {
+	int l;
+	for(l=0; vars[l]; l++);
 
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
-
-// Print a two-dimensional array
-void printMap (char **map) {
-	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
-			printf("%c", map[y][x]);
+	for(int i=0; i<l; i++) {
+		for(int y=1; y<5; y++) {
+			vars[y*l+i]=vars[i];
 		}
-		printf("\n");
 	}
-}
-// Full block character for maps █ and border elements ┃━┗┛┏┓
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
 }
 
 // Read input file line by line (e.g., into an array)
@@ -68,14 +51,8 @@ TLine *readInput() {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
 
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
+	// Allocate one-dimensional array of lines
 	TLine *inst=(TLine*)calloc(MAXY, sizeof(TLine));
-
-	// Allocate a two-dimensional arrray of chars
-	// int x=0, y=0;
-	// char **map=calloc(MAXY,sizeof(char*));
-	// for(int iter=0; iter<MAXY; iter++) map[iter]=calloc(MAXX,sizeof(char));
 
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
@@ -83,14 +60,30 @@ TLine *readInput() {
 		if(strlen(line)<2) continue;
 
 		inst[count].ops=calloc(MAXX, sizeof(int));
+		inst[count].maxoffset=calloc(MAXX, sizeof(int));
 
 		// Read tokens from single line
 		char *token;
-		inst[count].map = strdup(strtok(line, " "));
+		token = strtok(line, " ");
+		asprintf(&(inst[count].map), "%s?%s?%s?%s?%s", token, token, token, token, token);
+		for(int ii=0; ii<=strlen(inst[count].map); ii++) {
+			if (inst[count].map[ii]=='#') inst[count].has++;
+			if (inst[count].map[ii]=='?') inst[count].ques++;
+		}
 		int y=0;
 		while( 1 ) {
 			if(!(token = strtok(NULL, ","))) break;
-			inst[count].ops[y++] = atoi(token);
+			inst[count].ops[y] = atoi(token);
+			inst[count].needs+=inst[count].ops[y];
+			y++;
+		}
+		multiply(inst[count].ops);
+		inst[count].needs*=5;
+		for(inst[count].maxop=0; inst[count].ops[inst[count].maxop]; inst[count].maxop++);
+
+		inst[count].maxoffset[inst[count].maxop]=strlen(inst[count].map);
+		for(int j=inst[count].maxop-1; j>=0; j--) {
+			inst[count].maxoffset[j]=inst[count].maxoffset[j+1]-inst[count].ops[j];
 		}
 
 		count++;
@@ -103,104 +96,109 @@ TLine *readInput() {
 	return inst;
 }
 
-void countVars(TLine *array) {
+long nextWrap(char* wholemap, int offset, int op, int maxop, int *ops, int *maxoff, long **accel);
+
+
+long next(char* wholemap, int offset, int op, int maxop, int *ops, int *maxoff, long **accel) {
+
+	char *map=wholemap + offset;
+
+//	printf("%90s (%2ld) (%d/%d: %d)\n", map, strlen(map), op, maxop, ops[op]);
+
+	if(map[0]==0) {
+		if(op==maxop) { total++; }
+		// TODO: This will need some cheking
+		return 1;
+	}
+
+	if(op==maxop) { // operational vents used up. Only empties must remain
+		int k=0;
+		while(map[k]) if(map[k++]=='#') return 0;
+	} 
+
+	if(offset>maxoff[op]) {
+//		printf("Offset %d, maximum %d\n", offset, maxoff[op]);
+		return 0;
+	}
+
+
+	if(map[0]=='.') nextWrap(wholemap, offset + 1, op, maxop, ops, maxoff, accel);
+
+	if(map[0]=='#') {
+//		printf("Yes, the hash is reconized\n");
+		if(strlen(map)<ops[op]) return 0; // map too short
+//		printf("and not too short\n");
+		int y;
+		for(y=0; y<ops[op]; y++) {
+			if(map[y]=='.') return 0; // there is a gap in the run
+		}
+//		printf("Run for %d, next character is %c.\n",y,map[y]);
+		if(map[y]=='.')		nextWrap(wholemap, offset+y+1, op+1, maxop, ops, maxoff, accel); // Skip safely the border character
+		else if(map[y]=='?')	nextWrap(wholemap, offset+y+1, op+1, maxop, ops, maxoff, accel); // Skip safely the border character
+		else if(map[y]==0)	nextWrap(wholemap, offset+y, op+1, maxop, ops, maxoff, accel); // This will be the final check
+
+		return 0; // The run is too long. A dot or end of string must follow
+	}
+	
+	if(map[0]=='?') {
+		map[0]='#';
+		nextWrap(wholemap, offset, op, maxop, ops, maxoff, accel); // Like '#'
+		map[0]='?';
+
+		nextWrap(wholemap, offset+1, op, maxop, ops, maxoff, accel); // Like '.'
+	}
+
+	return 0;
+} 
+
+long nextWrap(char* wholemap, int offset, int op, int maxop, int *ops, int *maxoff, long **accel) {
+
+	if(accel[offset][op]>=0) { // Already seen this
+		total+=accel[offset][op];
+	}
+	else { // Fresh combination: let's calculate it
+		long ot=total;
+		next(wholemap, offset, op, maxop, ops, maxoff, accel);
+		accel[offset][op]=total-ot;
+	}
+
+	return 0;
+}
+
+void debugOut(TLine *array) {
+
 	for(int i=0; array[i].map; i++) {
-		array[i].vars=1;
-		for(int y=0; y<strlen(array[i].map); y++) {
-			if(array[i].map[y]=='?') array[i].vars=array[i].vars << 1;
-		}
-	}
-}
-
-char *variation(int num, TLine line) {
-
-	if(num>=line.vars) return NULL;
-
-	char *map=strdup(line.map);
-	int q=-1;
-	for(int i=0; i<strlen(map); i++) {
-		if(map[i]=='?') {
-			q++;
-			int bit=1<<q;
-			if(num & bit) map[i]='#';
-			else map[i]='.';
-		}
+		printf("l%03d:\n\t%s (%ld)\n\t", i, array[i].map, strlen(array[i].map));
+		for(int y=0; array[i].ops[y]; y++) printf("%d, ", array[i].ops[y]);
+		for(int y=0; array[i].ops[y]; y++) printf("%d, ", array[i].maxoffset[y]);
+		printf("is the maximum offset, respectively\n");
+		printf("\t.. has %d hashes, needs %d, therefore misses %d in %d places.\n", array[i].has, array[i].needs, array[i].needs - array[i].has, array[i].ques);
 	}
 
-	return map;
-}
-
-int *sum(char *map) {
-
-	int *sum = calloc(MAXX, sizeof(int));
-	int inq = 0;
-	int y = -1;
-
-	for(int i=0; i<strlen(map); i++) {
-		if(map[i]=='#') {
-			if(inq) sum[y]++;
-			else {
-				sum[++y]=1;
-				inq=1;
-			}
-		}
-		else inq=0;
-	}
-
-	return sum;
-}
-
-int compare(int *a, int *b) {
-
-	int la, lb;
-	for(la=0; a[la]; la++);
-	for(lb=0; b[lb]; lb++);
-
-	if(la!=lb) return 0;
-
-	for(int y=0; y<=la; y++) {
-		if(a[y]!=b[y]) return 0;
-	}
-	return 1;
 }
 
 int main(int argc, char *argv[]) {
 
 	TLine *array = readInput();
-	countVars(array);
-	int i=0;	
-//	array = readInput();
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-	for(i=0; array[i].map; i++) {
-		printf("%s\t", array[i].map);
-		for(int y=0; array[i].ops[y]; y++) printf("%d, ", array[i].ops[y]);
-		printf("\t%d variations\n", array[i].vars);
-	}
+//	debugOut(array);
 
-	int total=0;
+	for(int line=0; line<MAXY; line++) {
+		if(!array[line].map) continue;
 
-	for(int line=0; array[line].map; line++) {
-		i=0;
-		while (1) {
-
-			char *v=variation(i++, array[line]);
-			if(!v) break;
-
-
-			int *s=sum(v);
-			if(compare(s, array[line].ops)) {
-				printf("l%04d:\t%3d: %s\t", line, i, v);
-				for(int y=0; s[y]; y++) printf("%d, ", s[y]);
-				total++;
-				printf(" match %d!\n", total);
-			}
-
-
-			free(v);
-			free(s);
+		// Initialize new acceleration table
+		long **accel=(long**)calloc(strlen(array[line].map)+1, sizeof(long*));
+		for(int iter=0; iter<=strlen(array[line].map); iter++) {
+			accel[iter]=(long*)malloc((array[line].maxop+1) * sizeof(long));
+			for(int c=0; c<array[line].maxop+1; c++) accel[iter][c]=-1;
 		}
+
+		next(array[line].map, 0, 0, array[line].maxop, array[line].ops, array[line].maxoffset, accel);
+		
+		for(int iter=0; iter<=strlen(array[line].map); iter++) free(accel[iter]);
+		free(accel);
 	}
 
-	return 0;
+	printf("Total: %ld\n", total);
+
 }
