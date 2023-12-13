@@ -22,17 +22,16 @@ typedef struct {
 	int z;
 } TPoint;
 
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
+char **allocMap() {
+	char **retVal=calloc(MAXY,sizeof(char*));
+	for(int iter=0; iter<MAXY; iter++) retVal[iter]=calloc(MAXX,sizeof(char));
+	return retVal;
 }
 
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
+void freeMap(char **map) {
+	for(int iter=0; iter<MAXY; iter++) if(map[iter]) free(map[iter]);
+	free(map);
+}
 
 // Print a two-dimensional array
 void printMap (char **map) {
@@ -43,17 +42,6 @@ void printMap (char **map) {
 		}
 		printf("\n");
 	}
-}
-// Full block character for maps █ and border elements ┃━┗┛┏┓
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
 }
 
 // Read input file line by line (e.g., into an array)
@@ -70,16 +58,11 @@ char ***readInput() {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
 
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TPoint *inst=(TPoint*)calloc(MAXX, sizeof(TPoint));
-
-	// Allocate a two-dimensional arrray of chars
+	// Allocate a three-dimensional arrray of chars
 	int x=0, y=0;
 	char ***map=calloc(MAXZ,sizeof(char**));
 	for(int iter=0; iter<MAXZ; iter++) {
-		map[iter]=calloc(MAXY,sizeof(char*));
-		for(int ater=0; ater<MAXY; ater++) map[iter][ater]=calloc(MAXX,sizeof(char));
+		map[iter]=allocMap();
 	}
 
 	while ((read = getline(&line, &len, input)) != -1) {
@@ -103,7 +86,7 @@ char ***readInput() {
 	return map;
 }
 
-int checkMirror(char **map) {
+int checkMirror(char **map, int ignorescore) {
 
 	int retVal=0;
 	int mx, my, x, y, d;
@@ -111,120 +94,112 @@ int checkMirror(char **map) {
 	for(mx=0; map[0][mx]; mx++);
 	for(my=0; map[my][0]; my++);
 
-	char **mirror=calloc(MAXY,sizeof(char*));
-	for(int ater=0; ater<MAXY; ater++) mirror[ater]=calloc(MAXX,sizeof(char));
+	char **mirror=allocMap();
 
-	for(y=0; y<my; y++) {
-		for(x=0; x<mx; x++) {
+	for(y=0; y<my; y++) 
+		for(x=0; x<mx; x++) 
 			mirror[y][mx-x-1] = map[y][x];
-		}
-	}
-
-	printf("\nMirror:\n");
-	printMap(mirror);
-
-	printf("Width (mx): %d, starting from 2-%d+%d=%d\n", mx, mx, mx%2,2-mx+mx%2);
-
-	// Horizontal
-
 
 	for(d=2-mx; d<=mx-2; d+=2) {
 		int allfit=1;
 		int lookingat=0;
-		char **test=(char**)calloc(MAXY,sizeof(char*));
-		for(int iter=0; iter<MAXY; iter++) test[iter]=(char*)calloc(MAXX,sizeof(char));
-		for(y=0; y<my; y++)
-			for(x=0;x<mx*3; x++) test[y][x]=' ';
 
-		printf("\nShift %d:\n", d);
-		printf("Checking between columns %d and %d:\n",x=(d>0)?d:0, (d>0?mx:mx+d));
-		for(x=0; x<mx; x++) printf(" ");
-		for(x=0; x<mx; x++) if((x>=(d>0?d:0))&&x<(d>0?mx:mx+d)) printf("_"); else printf(" ");
-		printf("\n");
 		for(x=0; x<mx; x++) if((x>=(d>0?d:0))&&x<(d>0?mx:mx+d)) lookingat++;
 		for(y=0; y<my; y++) {
 			for(x=(d>0)?d:0; x<(d>0?mx:mx+d); x++) {
 				if(map[y][x]!=mirror[y][x-d]) {
 					allfit=0;
+					break;
 				}
-				else test[y][x+mx]='X';
 			}
 		}
-		for(y=0; y<my; y++) {
-			for(x=0; x<mx; x++) {
-				if(test[y][x+mx]==' ') test[y][x+mx]=map[y][x];
-				if(test[y][x+mx+d]==' ') test[y][x+mx+d]=mirror[y][x];
-			}
-		}
-		printMap(test);
+
 
 		if(allfit) {
-			printf("Shift %d fits\n", d);
-			if(d<0) return lookingat/2;
-			else return lookingat/2+d;
+			if(d<0) retVal = lookingat/2;
+			else retVal = lookingat/2+d;
+
+			if(retVal!=ignorescore) break;
+			else retVal=0;
 		}
-			
-//		for(int iter=0; iter<MAXY; iter++) {
-//			printf("So where %d? %ld\n", iter, test[iter]);
-//			if(test[iter]) free(test[iter]);
-//		}
-//		free(test);
 	}
-	
 
+	freeMap(mirror);
+	return retVal;
+}
 
-	
-	for(int ater=0; ater<MAXY; ater++) free(mirror[ater]);
-	free(mirror);
+int scoreMap(char **map, int ignorescore) {
+
+	int retVal=checkMirror(map, ignorescore);
+	if(!retVal) {
+		// Rotate
+		int x=0, y=0, my, mx;
+		char **rot=allocMap();
+
+		for(mx=0; map[0][mx]; mx++);
+		for(my=0; map[my][0]; my++);
+
+		for(y=0; y<my; y++)
+			for(x=0; x<mx; x++)
+				rot[mx-x-1][y]=map[y][x];
+
+		retVal=100*checkMirror(rot, ignorescore/100);
+
+		freeMap(rot);
+	}
 
 	return retVal;
 }
 
 int main(int argc, char *argv[]) {
 
-	int i=0, sum = 0;	
+	int i=0, sum = 0, newsum = 0;	
 	char ***maps = readInput();
 	int score;
 
 	i=1;
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 	for(i=0; maps[i][0][0]; i++) {
-		printMap(maps[i]);
-		printf("%d\n\n",i);
-		score=checkMirror(maps[i]);
-		if(!score) {
-			// Rotate
-			int x=0, y=0, my, mx;
-			char **rot=calloc(MAXY,sizeof(char*));
-			for(int iter=0; iter<MAXY; iter++) rot[iter]=calloc(MAXX,sizeof(char));
+//		printf("Start\n");
+//		printMap(maps[i]);
 
-			for(mx=0; maps[i][0][mx]; mx++);
-			for(my=0; maps[i][my][0]; my++);
+		char **map=maps[i];
 
-			printf("Original dimensions %dx%d, rotated dimenstions %dx%d\n", mx, my, my, mx);
+		int oldscore=scoreMap(map, 0);
 
-			for(y=0; y<my; y++)
-				for(x=0; x<mx; x++)
-					rot[mx-x-1][y]=maps[i][y][x];
+		score = 0;
+		for(int y=0; map[y][0]; y++) {
+			for(int x=0; map[0][x]; x++) {
+				char oldchar=map[y][x];
+				switch (oldchar) {
+					case '.':
+						map[y][x]='#';
+						break;
+					case '#':
+						map[y][x]='.';
+						break;
+				}
 
-			printf("Trying rotation:\n");
+				score = scoreMap(map, oldscore);
+				if((score!=0) && (score!=oldscore)) goto found;
 
-			printMap(rot);
-
-			score=100*checkMirror(rot);
-
-			for(int iter=0; iter<MAXY; iter++) free(rot[iter]);
-			free(rot);
-			
+				map[y][x]=oldchar;
+			}
 		}
 
-		sum+=score;
+found:
+
+		sum+=oldscore;
+		newsum+=score;
+		printf("%d:\t%4d (%d)\t%5d (%d)\n",i, oldscore, sum, score, newsum);
+
 
 		assert(score);
 
 	}
 
-	printf("Sum: %d\n", sum);
+	printf("Old sum: %d\n", sum);
+	printf("New sum: %d\n", newsum);
 
 	return 0;
 }
