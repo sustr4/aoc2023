@@ -116,25 +116,6 @@ char **readInput() {
 
 int north(char **map) {
 
-	while (1) {
-		int change=0;
-		for(int y=0; y<MAXY-1; y++) {
-			for(int x=0; x<MAXX; x++) {
-				if((map[y][x]=='.') && (map[y+1][x]=='O')) {
-					map[y][x]='O';
-					map[y+1][x]='.';
-					change=1;
-				}
-			}
-		}
-		if(!change) break;
-	}
-
-	return 0;
-}
-
-int north2(char **map) {
-
 	for(int y=1; y<MAXY; y++) 
 		for(int x=0; x<MAXX; x++) 
 			if((map[y][x]=='O')) {
@@ -235,7 +216,7 @@ int main(int argc, char *argv[]) {
 
 	for(int m=0; m<1000; m++) {
 		for(int i=0; i< 1000000; i++) {
-			north2(map); west(map); south(map); east(map);
+			north(map); west(map); south(map); east(map);
 		}
 		time_t rawtime;
 		struct tm * timeinfo;
