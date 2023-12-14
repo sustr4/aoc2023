@@ -242,7 +242,7 @@ int main(int argc, char *argv[]) {
 
 		time ( &rawtime );
 		timeinfo = localtime ( &rawtime );
-		printf("%d million,\t", m);
+		printf("%d million, load %d\t", m, load(map));
 		printf ("%s", asctime (timeinfo) );
 	}
 
