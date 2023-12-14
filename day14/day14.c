@@ -225,6 +225,14 @@ int main(int argc, char *argv[]) {
 	char **map=readInput();
 	printf("No of Os: %d\n", countO(map));
 
+
+	north(map);
+	printMap(map);
+	printf("No of Os: %d\n", countO(map));
+	printf("Load is %d\n", load(map));
+
+
+
 	for(int m=0; m<1000; m++) {
 		for(int i=0; i< 1000000; i++) {
 			north2(map); west(map); south(map); east(map);
