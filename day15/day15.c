@@ -9,28 +9,20 @@
 // Boundary and input file definitions, set as required
 #define INPUT "input.txt"
 #define MAXX 4000
+#define MAXY 100
 //#define INPUT "unit1.txt"
 
 // Point structure definition
 typedef struct {
-	int x;
-	int y;
-	int z;
-} TPoint;
+	char *label;
+	char op;
+	int val;
+} TStep;
 
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
-
-
+typedef struct {
+	char *label;
+	int val;
+} TLens;
 
 // Read input file line by line (e.g., into an array)
 char **readInput() {
@@ -46,29 +38,10 @@ char **readInput() {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
 
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TPoint *inst=(TPoint*)calloc(MAXX, sizeof(TPoint));
-
-	// Allocate a two-dimensional arrray of chars
-	// int x=0, y=0;
 	char **map=calloc(MAXX,sizeof(char*));
-	// for(int iter=0; iter<MAXY; iter++) map[iter]=calloc(MAXX,sizeof(char));
 
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
-
-		// Read into map
-		// for(x=0; x<MAXX; x++) map[y][x] = line[x];
-		// y++;
-
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
-
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
 
 		// Read tokens from single line
 		char *token;
@@ -87,36 +60,117 @@ char **readInput() {
 	return map;
 }
 
+int hash(char *str) { // Calculate hash
+	int sum=0;
+	for(int y=0; y<strlen(str); y++) {
+		sum+=(int)(str[y]);
+		sum*=17;
+		sum=sum % 256;
+	}
+	return sum;
+}
+
+TStep fromString(char *str) { // Read complete instruction from string
+	TStep s;
+	int i;
+
+	s.label=strdup(str);
+	for(i=0; i<strlen(str); i++) {
+		if((str[i]=='-') || (str[i]=='=')) {
+			s.op=s.label[i];
+			s.label[i]=0;
+			break;
+		}
+	}
+	s.val = atoi(str+i+1);
+
+	return s;
+}
+
+TLens push(TLens *box, TLens lens) { // Push lens into the box
+	int i;
+	TLens ret = {NULL, 0};
+
+	for(i=0; box[i].label; i++) {
+		if(!strcmp(box[i].label,lens.label)) { // Exchange if lens present
+			ret.label=strdup(lens.label);
+			ret.val=box[i].val;
+			box[i].val=lens.val;
+			return ret;
+		}
+	}
+	box[i].label=strdup(lens.label); // Add to end
+	box[i].val=lens.val;
+
+	return ret;
+}
+
+TLens pull(TLens *box, char *label) { // Pull lens out of the box
+
+	int i,y;
+	TLens ret = {NULL, 0};
+
+	for(i=0; box[i].label; i++) {
+		if(!strcmp(box[i].label,label)) { // Pull if found
+			ret.label=label;
+			ret.val=box[i].val;
+			for(y = i; box[y+1].label; y++) box[y]=box[y+1];
+			box[y].label=NULL;
+			box[y].val=0;
+		}
+	}
+
+	return ret;
+}
+
+int printBox(TLens *box) { // Print but also calculate focusing power
+	int fl=0;
+	for(int i=0; box[i].label; i++) {
+		printf("[%s %d] ", box[i].label, box[i].val);
+		fl+=(i+1)*box[i].val;
+	}
+	printf("\tfl=%d\n", fl);
+
+	return fl;
+}
+
 int main(int argc, char *argv[]) {
 
-//	TPoint *array;
-	int i=0, sum=0, sumsum=0;	
-//	array = readInput();
+	TStep *step = calloc(MAXX, sizeof(TStep));
+
+	TLens **box = calloc(256, sizeof(TLens *));
+	for(int t=0; t<256; t++) box[t]=calloc(MAXY, sizeof(TLens));
+
+	int i=0, sumsum=0;	
 	char **map=readInput();
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
+	for(i=0; map[i]; i++) sumsum+=hash(map[i]);
+	printf("Sum of hashes: %d\n", sumsum);
+
 	for(i=0; map[i]; i++) {
+		step[i]=fromString(map[i]);
 
-//    Determine the ASCII code for the current character of the string.
-//    Increase the current value by the ASCII code you just determined.
-//    Set the current value to itself multiplied by 17.
-//    Set the current value to the remainder of dividing itself by 256.
+		printf("\nAfter %s\t%s (%d) %c %d\n", map[i], step[i].label, hash(step[i].label), step[i].op, step[i].val);
 
-		sum=0;
-		for(int y=0; y<strlen(map[i]); y++) {
-			sum+=(int)(map[i][y]);
-//printf("\t%d\n", sum);
-			sum*=17;
-//printf("\t%d\n", sum);
-			sum=sum % 256;
-//printf("\t%d\n", sum);
+		if(step[i].op=='=') {
+			TLens hand = { step[i].label, step[i].val };
+			push(box[hash(hand.label)], hand);
 		}
+		else if(step[i].op=='-') {
+			pull(box[hash(step[i].label)], step[i].label );
+		}
+		
 
-		sumsum+=sum;
-
-		printf("%s\tbecomes %d\t%d\n", map[i], sum, sumsum);
-
+		int total=0;
+		for(int y=0; y<256; y++) {
+			if(box[y][0].label) {
+				printf("Box %3d: ", y);
+				total+=(y+1) * printBox(box[y]);
+			}
+		}
+		printf("Current focus: %d\n", total);
 	}
+
 
 	return 0;
 }
