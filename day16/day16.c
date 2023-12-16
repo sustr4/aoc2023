@@ -14,25 +14,6 @@
 //#define MAXX 10
 //#define MAXY 10
 
-// Point structure definition
-typedef struct {
-	int x;
-	int y;
-	int z;
-} TEnergy;
-
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
-
 // Print a two-dimensional array
 void printMap (char **map, char ***energy) {
 	int x,y, e;
@@ -47,17 +28,6 @@ void printMap (char **map, char ***energy) {
 		printf("\n");
 	}
 }
-// Full block character for maps █ and border elements ┃━┗┛┏┓
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
-}
 
 // Read input file line by line (e.g., into an array)
 char **readInput() {
@@ -65,16 +35,11 @@ char **readInput() {
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
-	int count = 0;
 
 	input = fopen(INPUT, "r");
 	if (input == NULL) {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
-
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TEnergy *inst=(TEnergy*)calloc(MAXX, sizeof(TEnergy));
 
 	// Allocate a two-dimensional arrray of chars
 	int x=0, y=0;
@@ -87,23 +52,6 @@ char **readInput() {
 		// Read into map
 		for(x=0; x<MAXX; x++) map[y][x] = line[x];
 		y++;
-
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
-
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
-
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
-
-		count++;
 	}
 
 	fclose(input);
@@ -240,37 +188,23 @@ void freeEnergy(char ***energy) {
 
 int main(int argc, char *argv[]) {
 
-//	TEnergy *array;
-//	int i=0;	
-//	array = readInput();
 	char **map = readInput();
 	char ***energy;
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-//	for(i=0; array[i]; i++) {
-//		printf("%d\n", array[i]);
-//	}
-
-	int max = 0, mx, my, md, c;
+	int max = 0, c;
 
 	for(int y=0; y<MAXY; y++) {
 
 		energy=cleanEnergy();
 		trace(y, 0, 0, map, energy);
 		c = count(energy);
-		if(c>max) {
-			max=c;
-			mx=0; my=y; md=0;
-		}
+		if(c>max) max=c;
 		cleanEnergy(energy);
 
 		energy=cleanEnergy();
 		trace(y, MAXX-1, 2, map, energy);
 		c = count(energy);
-		if(c>max) {
-			max=c;
-			mx=0; my=y; md=2;
-		}
+		if(c>max) max=c;
 		cleanEnergy(energy);
 	}
 
@@ -279,24 +213,15 @@ int main(int argc, char *argv[]) {
 		energy=cleanEnergy();
 		trace(0, x, 1, map, energy);
 		c = count(energy);
-		if(c>max) {
-			max=c;
-			mx=x; my=0; md=1;
-		}
+		if(c>max) max=c;
 		cleanEnergy(energy);
 
 		energy=cleanEnergy();
 		trace(MAXY-1, x, 3, map, energy);
 		c = count(energy);
-		if(c>max) {
-			max=c;
-			mx=x; my=MAXY-1; md=3;
-		}
+		if(c>max) max=c;
 		cleanEnergy(energy);
 	}
-//	printMap(map, energy);
-
-
 
 	printf("Energized fields MAX: %d\n", max);
 	freeEnergy(energy);
