@@ -244,20 +244,61 @@ int main(int argc, char *argv[]) {
 //	int i=0;	
 //	array = readInput();
 	char **map = readInput();
-	char ***energy = cleanEnergy();
+	char ***energy;
 
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 //	for(i=0; array[i]; i++) {
 //		printf("%d\n", array[i]);
 //	}
 
-	trace(0, 0, 0, map, energy);
+	int max = 0, mx, my, md, c;
 
-	printMap(map, energy);
+	for(int y=0; y<MAXY; y++) {
+
+		energy=cleanEnergy();
+		trace(y, 0, 0, map, energy);
+		c = count(energy);
+		if(c>max) {
+			max=c;
+			mx=0; my=y; md=0;
+		}
+		cleanEnergy(energy);
+
+		energy=cleanEnergy();
+		trace(y, MAXX-1, 2, map, energy);
+		c = count(energy);
+		if(c>max) {
+			max=c;
+			mx=0; my=y; md=2;
+		}
+		cleanEnergy(energy);
+	}
+
+	for(int x=0; x<MAXY; x++) {
+
+		energy=cleanEnergy();
+		trace(0, x, 1, map, energy);
+		c = count(energy);
+		if(c>max) {
+			max=c;
+			mx=x; my=0; md=1;
+		}
+		cleanEnergy(energy);
+
+		energy=cleanEnergy();
+		trace(MAXY-1, x, 3, map, energy);
+		c = count(energy);
+		if(c>max) {
+			max=c;
+			mx=x; my=MAXY-1; md=3;
+		}
+		cleanEnergy(energy);
+	}
+//	printMap(map, energy);
 
 
 
-	printf("Energized fields: %d\n", count(energy));
+	printf("Energized fields MAX: %d\n", max);
 	freeEnergy(energy);
 	return 0;
 }
