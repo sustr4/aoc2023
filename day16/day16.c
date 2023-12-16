@@ -221,17 +221,30 @@ int count(char ***energy) {
 	return cnt;
 }
 
+char ***cleanEnergy() {
+	char ***energy = calloc(MAXY,sizeof(char**));
+	for(int iter=0; iter<MAXY; iter++) {
+		energy[iter]=calloc(MAXX,sizeof(char*));
+		for(int yter=0; yter<MAXX; yter++) energy[iter][yter]=calloc(4,sizeof(char));
+	}
+	return energy;
+}
+
+void freeEnergy(char ***energy) {
+	for(int iter=0; iter<MAXY; iter++) {
+		for(int yter=0; yter<MAXX; yter++) free(energy[iter][yter]);
+		free(energy[iter]);
+	}
+	free(energy);
+}
+
 int main(int argc, char *argv[]) {
 
 //	TEnergy *array;
 //	int i=0;	
 //	array = readInput();
 	char **map = readInput();
-	char ***energy = calloc(MAXY,sizeof(char**));
-	for(int iter=0; iter<MAXY; iter++) {
-		energy[iter]=calloc(MAXX,sizeof(char*));
-		for(int yter=0; yter<MAXX; yter++) energy[iter][yter]=calloc(4,sizeof(char));
-	}
+	char ***energy = cleanEnergy();
 
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 //	for(i=0; array[i]; i++) {
@@ -242,6 +255,9 @@ int main(int argc, char *argv[]) {
 
 	printMap(map, energy);
 
+
+
 	printf("Energized fields: %d\n", count(energy));
+	freeEnergy(energy);
 	return 0;
 }
