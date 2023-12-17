@@ -232,8 +232,8 @@ int main(int argc, char *argv[]) {
 //		printf("%d\n", array[i]);
 //	}
 
-	step(0,0,1,3,map,score,0,map[0][0]);
-	step(0,0,2,3,map,score,0,map[0][0]);
+	step(0,0,1,3,map,score,0,0);
+	step(0,0,2,3,map,score,0,0);
 
 
 //	printf("\n");
