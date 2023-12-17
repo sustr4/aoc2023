@@ -18,7 +18,6 @@
 typedef struct {
 	int x;
 	int y;
-	int z;
 } TPoint;
 
 // Comparator function example
@@ -47,22 +46,14 @@ void printMap (int **map) {
 }
 // Full block character for maps █ and border elements ┃━┗┛┏┓
 // Color printf("\033[1;31mR \033[1;32mG \033[1;34mB \033[0moff\n");
-void printScore (int **map, int **score) {
+void printScore (int **map, int **score, TPoint *old) {
 	int x,y;
 	int **went=calloc(MAXY,sizeof(int*));
 	for(int iter=0; iter<MAXY; iter++) went[iter]=calloc(MAXX,sizeof(int));
 	went[MAXY-1][MAXY-1]=1;
-	while(1) {
-		int c=0;
-		for(y=0; y<MAXY; y++) {
-			for(x=0; x<MAXX; x++) {
-				if((y-1>=0) && (went[y][x]) && (!went[y-1][x]) && (score[y][x]==score[y-1][x]+map[y][x])) { went[y-1][x]=1; c=1; }
-				if((y+1<MAXY) && (went[y][x]) && (!went[y+1][x]) && (score[y][x]==score[y+1][x]+map[y][x])) { went[y+1][x]=1; c=1; }
-				if((x-1>=0) && (went[y][x]) && (!went[y][x-1]) && (score[y][x]==score[y][x-1]+map[y][x])) { went[y][x-1]=1; c=1; }
-				if((x+1<MAXX) && (went[y][x]) && (!went[y][x-1]) && (score[y][x]==score[y][x+1]+map[y][x])) { went[y][x+1]=1; c=1; }
-			}
-		}
-		if(!c) break;
+	for(int trythis=0; trythis<500; trythis++) {
+		went[old[trythis].y][old[trythis].x]=1;
+		if((old[trythis].x==MAXX-1) && (old[trythis].y==MAXY-1)) break;
 	}
 
 	for(y=0; y<MAXY; y++) {
@@ -143,50 +134,95 @@ int **readInput() {
 
 // 0 right, 1 down, 2 left, 3 up
 
-int newx(int x, int d) { // New X based on direction
+int newx(int x, int steps, int d) { // New X based on direction
 	switch(d) {
-		case 0: return x+1;
-		case 2: return x-1;
+		case 0: return x+steps;
+		case 2: return x-steps;
 		case 1:
 		case 3: return x;
 	}
 	return x;
 }
-int newy(int y, int d) { // New X based on direction
+int newy(int y, int steps, int d) { // New X based on direction
 	switch(d) {
-		case 1: return y+1;
-		case 3: return y-1;
+		case 1: return y+steps;
+		case 3: return y-steps;
 		case 0:
 		case 2: return y;
 	}
 	return y;
 }
 
-int step(int x, int y, int d, int cd, int **map, int **score, int s) {
+int step(int x, int y, int d, int **map, int **score, TPoint *old, int depth, int s) {
 
+	static int iteration=0;
 	int nx, ny, nd;
 
-	if(cd>=3) return 0; //already went straight too many times
+	old[depth].x=x;
+	old[depth].y=y;
+	iteration++;
+//	if(iteration>8000) return 0;
 
-	if((y<0) || (x<0) || (y>=MAXY) || (x>=MAXX)) return 0;
+//	printf("\nIteration %d: [%d,%d], direction %d, depth %d, score %d\n", iteration, x, y, d, depth, s);
+	if((y<0) || (x<0) || (y>=MAXY) || (x>=MAXX)) {
+//		printf("Out of bounds\n");
+		return 0;
+	}
 
-	if((score[y][x]) && (s+map[y][x]>score[y][x])) return 0; // Already been here with a better score
+	if((score[y][x]) && (s>=score[y][x])) {
+//		printf("Score exceeded\n");
+		return 0; // Already been here with a better score
+	}
 
-	score[y][x]=s+map[y][x]; // This is the best score on the way here so far
 
-	// Try straight
-	nx=newx(x, d); ny=newy(y, d); nd=d;
-	step(nx, ny, d, cd+1, map, score, s+map[y][x]);
-	
+	score[y][x]=s; // This is the best score on the way here so far
+
+//	printScore(map,score,old);
+
+	if((depth==2) && (y==1) && (x==2)) {
+
+		printf("\nIteration %d: [%d,%d], direction %d, depth %d, score %d\n", iteration, x, y, d, depth, s);
+		printScore(map,score,old);
+	}
+
+	if((y==MAXY-1) && (x==MAXX-1)) {
+//		printf("No need to search beyond the goal\n");
+//		printf("\n");
+//		printScore(map,score,old);
+		return 0;
+	}
+
 	// Try left
 	nd=d-1; if(nd<0) nd=3;
-	nx=newx(x, nd); ny=newy(y, nd);
-	step(nx, ny, d, 0, map, score, s+map[y][x]);
+	int sadd=0;
+	for(int stepNo=1; stepNo<=3; stepNo++) {
+//		printf("Trying %d left\n", stepNo);
+		nx=newx(x, stepNo, nd); ny=newy(y, stepNo, nd);
+		if((ny<0) || (nx<0) || (ny>=MAXY) || (nx>=MAXX)) break;
+//		if((y==0) && (x==0) && (nx==3)) {
+//			printf("\nThis is the interesting point in L (depth %d)\n", depth);
+//			printScore(map,score,old);
+//		}
+		sadd+=map[ny][nx];
+//		printf("Adding %d to score (=%d)\n", sadd, s+sadd);
+		step(nx, ny, nd, map, score, old, depth+1, s+sadd);
+	}
 
 	// Try right
 	nd=d+1; if(nd>3) nd=0;
-	nx=newx(x, nd); ny=newy(y, nd);
-	step(nx, ny, d, 0, map, score, s+map[y][x]);
+	sadd=0;
+	for(int stepNo=1; stepNo<=3; stepNo++) {
+//		printf("Trying %d right\n", stepNo);
+		nx=newx(x, stepNo, nd); ny=newy(y, stepNo, nd);
+//		if((y==0) && (x==0) && (nx==3)) {
+//			printf("\nThis is the interesting point in R (depth %d)\n", depth);
+//			printScore(map,score,old);
+//		}
+		if((ny<0) || (nx<0) || (ny>=MAXY) || (nx>=MAXX)) break;
+		sadd+=map[ny][nx];
+//		printf("Adding %d to score\n", sadd);
+		step(nx, ny, nd, map, score, old, depth+1, s+sadd);
+	}
 
 	return 0;
 }
@@ -199,17 +235,19 @@ int main(int argc, char *argv[]) {
 	int **map=readInput();
 	int **score=calloc(MAXY,sizeof(int*));
 	for(int iter=0; iter<MAXY; iter++) score[iter]=calloc(MAXX,sizeof(int));
+	TPoint *old=calloc(1000,sizeof(TPoint*));
 
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 //	for(i=0; array[i]; i++) {
 //		printf("%d\n", array[i]);
 //	}
 
-	step(0,0,0,0,map,score,0);
+	step(0,0,1,map,score,old,0,map[0][0]);
+	step(0,0,0,map,score,old,0,map[0][0]);
 
-	printScore(map,score);
 
-	
+	printf("\n");
+	printScore(map,score,old);
 
 	return 0;
 }
