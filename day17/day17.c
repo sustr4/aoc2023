@@ -7,22 +7,12 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-//#define INPUT "input.txt"
-//#define MAXX 141
-//#define MAXY 141
-#define INPUT "unit1.txt"
-#define MAXX 13
-#define MAXY 13
-
-#define MAXSTEP 10
-
-int startMax=INT_MAX;
-
-// Point structure definition
-typedef struct {
-	int x;
-	int y;
-} TPoint;
+#define INPUT "input.txt"
+#define MAXX 141
+#define MAXY 141
+//#define INPUT "unit1.txt"
+//#define MAXX 13
+//#define MAXY 13
 
 // Print a two-dimensional array
 void printMap (int **map) {
@@ -113,9 +103,6 @@ int newy(int y, int steps, int d) { // New X based on direction
 
 int main(int argc, char *argv[]) {
 
-//	TPoint *array;
-//	int i=0;	
-//	array = readInput();
 	int **map=readInput();
 
         int ***score=calloc(MAXY,sizeof(int**));
@@ -139,7 +126,7 @@ int main(int argc, char *argv[]) {
 	step[0][0][1]=1;
 
 	int dx, dy;
-	for(int s=1; s<200; s++) {
+	for(int s=1; s<4000; s++) {
 		// from vertical to horizontal
         	for(int y=0; y<MAXY; y++) {
                 	for(int x=0; x<MAXX; x++) {
@@ -149,7 +136,7 @@ int main(int argc, char *argv[]) {
 					if(x+dx<0) break;
 					cumul+=map[y][x+dx];
 				}
-				for(dx=-4; dx>=0-MAXSTEP; dx--) { // Left
+				for(dx=-4; dx>=0-10; dx--) { // Left
 					if(x+dx<0) break;
 					cumul+=map[y][x+dx];
 					if(!score[y][x+dx][1]) {
@@ -166,7 +153,7 @@ int main(int argc, char *argv[]) {
 					if(x+dx>=MAXX) break;
 					cumul+=map[y][x+dx];
 				}
-				for(dx=4; dx<=MAXSTEP; dx++) { // Right
+				for(dx=4; dx<=10; dx++) { // Right
 					if(x+dx>=MAXX) break;
 					cumul+=map[y][x+dx];
 //					printf("[%d,%d] %d\n", y, x+dx, score[y][x][1]);
@@ -190,7 +177,7 @@ int main(int argc, char *argv[]) {
 					if(y+dy<0) break;
 					cumul+=map[y+dy][x];
 				}
-				for(dy=-4; dy>=0-MAXSTEP; dy--) { // Up
+				for(dy=-4; dy>=0-10; dy--) { // Up
 					if(y+dy<0) break;
 					cumul+=map[y+dy][x];
 					if(!score[y+dy][x][0]) {
@@ -207,7 +194,7 @@ int main(int argc, char *argv[]) {
 					if(y+dy>=MAXY) break;
 					cumul+=map[y+dy][x];
 				}
-				for(dy=4; dy<=MAXSTEP; dy++) { // Down
+				for(dy=4; dy<=10; dy++) { // Down
 					if(y+dy>=MAXY) break;
 					cumul+=map[y+dy][x];
 //					printf("[%d,%d] %d\n", y, x+dx, score[y][x][1]);
@@ -225,6 +212,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	printScore(map,score);
+
+	printf("The lowest possible heat loss is %d\n", (score[MAXY-1][MAXX-1][0]<score[MAXY-1][MAXX-1][1]?score[MAXY-1][MAXX-1][0]:score[MAXY-1][MAXX-1][1])-map[0][0]);
 
 	return 0;
 }
