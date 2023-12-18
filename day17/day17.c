@@ -74,20 +74,7 @@ int **readInput() {
 		for(x=0; x<MAXX; x++) map[y][x] = line[x]-'0';
 		y++;
 
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
 
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
-
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
 
 		count++;
 	}
@@ -158,7 +145,11 @@ int main(int argc, char *argv[]) {
                 	for(int x=0; x<MAXX; x++) {
 				if(step[y][x][0]!=s) continue; // Only expand the current step
 				int cumul=0;
-				for(dx=-1; dx>=0-MAXSTEP; dx--) { // Left
+				for(dx=-1; dx>=-3; dx--) { // Left
+					if(x+dx<0) break;
+					cumul+=map[y][x+dx];
+				}
+				for(dx=-4; dx>=0-MAXSTEP; dx--) { // Left
 					if(x+dx<0) break;
 					cumul+=map[y][x+dx];
 					if(!score[y][x+dx][1]) {
@@ -171,7 +162,11 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				cumul=0;
-				for(dx=1; dx<=MAXSTEP; dx++) { // Right
+				for(dx=1; dx<=3; dx++) { // Right
+					if(x+dx>=MAXX) break;
+					cumul+=map[y][x+dx];
+				}
+				for(dx=4; dx<=MAXSTEP; dx++) { // Right
 					if(x+dx>=MAXX) break;
 					cumul+=map[y][x+dx];
 //					printf("[%d,%d] %d\n", y, x+dx, score[y][x][1]);
@@ -191,7 +186,11 @@ int main(int argc, char *argv[]) {
                 	for(int x=0; x<MAXX; x++) {
 				if(step[y][x][1]!=s) continue; // Only expand the current step
 				int cumul=0;
-				for(dy=-1; dy>=0-MAXSTEP; dy--) { // Up
+				for(dy=-1; dy>=0-3; dy--) { // Up
+					if(y+dy<0) break;
+					cumul+=map[y+dy][x];
+				}
+				for(dy=-4; dy>=0-MAXSTEP; dy--) { // Up
 					if(y+dy<0) break;
 					cumul+=map[y+dy][x];
 					if(!score[y+dy][x][0]) {
@@ -204,7 +203,11 @@ int main(int argc, char *argv[]) {
 					}
 				}
 				cumul=0;
-				for(dy=1; dy<=MAXSTEP; dy++) { // Down
+				for(dy=1; dy<=3; dy++) { // Down
+					if(y+dy>=MAXY) break;
+					cumul+=map[y+dy][x];
+				}
+				for(dy=4; dy<=MAXSTEP; dy++) { // Down
 					if(y+dy>=MAXY) break;
 					cumul+=map[y+dy][x];
 //					printf("[%d,%d] %d\n", y, x+dx, score[y][x][1]);
