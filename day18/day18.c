@@ -8,12 +8,10 @@
 
 // Boundary and input file definitions, set as required
 //#define INPUT "input.txt"
-#define MAXOP 800
-//#define MAXX 76
-//#define MAXY 26
 #define INPUT "unit1.txt"
-#define MAXX 80
-#define MAXY 80
+#define MAXOP 800
+#define MAXX 100
+#define MAXY 100
 
 // Point structure definition
 typedef struct {
@@ -23,6 +21,8 @@ typedef struct {
 	int count;
 	char *color;
 } TOp;
+
+int ymin=0, ymax=0, xmin=0, xmax=0;
 
 // Comparator function example
 int comp(const void *a, const void *b)
@@ -39,8 +39,8 @@ int comp(const void *a, const void *b)
 // Print a two-dimensional array
 void printMap (char **map) {
 	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
+	for(y=ymax; y<=ymin; y++) {
+		for(x=xmax; x<=xmin; x++) {
 			if( map[y][x]) 	printf("%c", map[y][x]);
 			else printf(" ");
 		}
@@ -138,6 +138,18 @@ TOp *readInput() {
 //	return map;
 }
 
+void colorIn (char **map) {
+	int y, x;
+	for(y=ymax; y<=ymin; y++) {
+		if(map[y][0]==0) map[y][0]='.';
+		if(map[y][xmin]==0) map[y][xmin]='.';
+	}
+	for(x=xmax; x<=xmin; x++) {
+		if(map[0][x]==0) map[0][x]='.';
+		if(map[ymin][x]==0) map[ymin][x]='.';
+	}
+}
+
 int main(int argc, char *argv[]) {
 
 	int i=0;	
@@ -148,15 +160,23 @@ int main(int argc, char *argv[]) {
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 	int x = MAXX / 2;
 	int y = MAXY / 2;
+	xmin=x; xmax=x;
+	ymin=y; ymax=y;
 	for(i=0; array[i].dir; i++) {
 		printf("%c %d %s\n", array[i].dir, array[i].count, array[i].color);
 		for(int q=0; q<array[i].count; q++) {
 			x+=array[i].dx;
 			y+=array[i].dy;
 			map[y][x]='#';
+			if(ymin<y) ymin=y;
+			if(ymax>y) ymax=y;
+			if(xmin<x) xmin=x;
+			if(xmax>x) xmax=x;
 		}
 	}
 	printMap(map);
+
+	printf("Dimensions: %d -- %d horizontally, %d -- %d vertically\n", xmin, xmax, ymax, ymin);
 
 	return 0;
 }
