@@ -105,7 +105,7 @@ TRule *readInput() {
 	// char **queue=(char**)calloc(MAXX, sizeof(char*));
 
 	// Allocate a two-dimensional arrray of chars
-	int x, y;
+	int x, y=0;
 	queue=calloc(MAXY, sizeof(TQueue));
 	part=calloc(MAXY, sizeof(int*));
 
@@ -199,6 +199,10 @@ int main(int argc, char *argv[]) {
 //	array = readInput();
 	readInput();
 
+	int **ms=(int**)calloc(4, sizeof(int*));
+	int msidx[] = {0,0,0,0};
+	for(int j=0; j<4; j++) ms[j]=calloc(MAXY, sizeof(int));
+
 	int start=qn("in");
 	int accept=qn("A");
 	int refuse=qn("R");
@@ -210,6 +214,16 @@ int main(int argc, char *argv[]) {
 		printf("Queue %d (%s):\n", i, qs[i]);
 		for(int r=0; queue[i].rule && queue[i].rule[r].op; r++) {
 			printf("\t%2d: %c %c %d -> %d (%s)\n", r, queue[i].rule[r].cat, queue[i].rule[r].op, queue[i].rule[r].val, queue[i].rule[r].send, qs[queue[i].rule[r].send]);
+			if(queue[i].rule[r].op=='<') {
+				int c = catno(queue[i].rule[r].cat);
+				ms[c][msidx[c]++] = queue[i].rule[r].val-1;
+				continue;
+			}
+			if(queue[i].rule[r].op=='>') {
+				int c = catno(queue[i].rule[r].cat);
+				ms[c][msidx[c]++] = queue[i].rule[r].val;
+				continue;
+			}
 		}
 	}
 
@@ -238,5 +252,55 @@ int main(int argc, char *argv[]) {
 
 	printf("Sum: %d\n", sum);
 
-	return 0;
+	int max=0;
+	for(int j=0; j<4; j++) { // Cap each list, sort, and count
+		ms[j][msidx[j]++]=4000;
+//		printf("%9d",msidx[j]);
+		qsort(ms[j],++msidx[j],sizeof(int),comp); // The ++ includes one of the trailing zeroes into the sort
+		if(max<msidx[j]) max=msidx[j];
+	}
+
+	for(int k=0; k<max; k++) {
+		for(int j=0; j<4; j++) {
+			printf("%9d",ms[j][k]);
+		}
+		printf("\n");
+	}
+
+	long long sum2=0;
+	long long checksum2=0;
+
+	int l[4];
+//	#pragma omp parallel for shared(sum2,checksum2)
+	for(l[0]=1; l[0]<msidx[0]; l[0]++) {
+		printf("%d\n", l[0]);
+		for(l[1]=1; l[1]<msidx[1]; l[1]++) {
+			for(l[2]=1; l[2]<msidx[2]; l[2]++) {
+				for(l[3]=1; l[3]<msidx[3]; l[3]++) {
+					for(int j=0; j<4; j++) {
+						part[0][j]=ms[j][l[j]];
+//						printf("%9d",part[0][j]);
+					}
+//					printf("\n");
+					int q=start;
+					long long fac=1;
+					for(int j=0; j<4; j++) fac*=((long long)ms[j][l[j]]-(long long)ms[j][l[j]-1]);
+					checksum2+=fac;
+					while(1) {
+//						printf("%d (%s) -> ", q, qs[q]);
+						q=next(0, q);
+//						printf("%d (%s).\n", q, qs[q]);
+						if(q==accept) {
+							sum2+=fac;
+							break;
+						}
+						if(q==refuse) break;
+					}
+				}
+			}
+		}
+	}
+	printf("     Sum 2: %15lld\n", sum2);
+	printf("  Checksum: %15lld\n", checksum2);
+	printf("Totalcheck: %15lld\n", (long long)4000*(long long)4000*(long long)4000*(long long)4000);
 }
