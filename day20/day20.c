@@ -10,7 +10,7 @@
 #define INPUT "input.txt"
 #define MAXX 100
 #define MAXY 100
-#define QLEN 10000
+#define QLEN 100000000
 //#define INPUT "unit2.txt"
 //#define MAXX 10
 //#define MAXY 10
@@ -21,19 +21,20 @@ long buttonPresses = 0;
 int modNo(char *name) {
 	static char **names=NULL;
 
-	if(!names) names=calloc(1000, sizeof(char*));
+	if(!names) names=calloc(100, sizeof(char*));
 
 	int i;
 	for(i=0; names[i]; i++) {
 		if(!strcmp(names[i],name)) return i;
 	}
+//	printf("Adding module %s to the list as %d\n", name, i);
 	names[i]=strdup(name);
 	return i;
 }
 
 typedef struct {
-	int val;
-	int from;
+	unsigned char val;
+	unsigned char from;
 } TPulse;
 
 // Point structure definition
@@ -48,26 +49,22 @@ typedef struct {
 	int *connect;
 } TModule;
 
+int goal=0;
+
 void push(int m, TModule *module, TPulse pulse) {
 
 	static int goal=0;
 
-	if(!goal) goal = modNo("rx");
 
-	if((m==goal) && (pulse.val == 1)) printf("rx got low after %ld button presses\n", buttonPresses);
-
-	if(!module[m].in) {
-		module[m].in=calloc(QLEN, sizeof(TPulse));
-		module[m].idxtop=0;
-		module[m].idxbottom=0;
-	}
+	if((m==goal) && (pulse.val == 1)) printf("%s got low after %ld button presses\n", module[m].name, buttonPresses);
 
 //	printf("\t pushing %d from %d (%s) into the queue for %d (%s)\n", pulse.val, pulse.from, module[pulse.from].name, m, module[m].name);
 
 	pulses[pulse.val]++; // Stats
-
 	module[m].in[module[m].idxtop++]=pulse;
 	if(module[m].idxtop>=QLEN) module[m].idxtop=0;
+
+	if(module[m].idxtop!=module[m].idxbottom)
 	assert(module[m].idxtop!=module[m].idxbottom);
 }
 
@@ -157,6 +154,9 @@ TModule *readInput() {
 		inst[no].type=token[0];
 		token = strtok(NULL, " "); // this gets rid of the ->
 		inst[no].connect=calloc(10,sizeof(int));
+		inst[no].in=calloc(QLEN, sizeof(TPulse));
+		inst[no].idxtop=0;
+		inst[no].idxbottom=0;
 		if(inst[no].type=='&') { // Conjunction module needs memory
 			inst[no].memory=calloc(MAXY,sizeof(int));
 		}
@@ -169,6 +169,14 @@ TModule *readInput() {
 
 		count++;
 	}
+
+	no=modNo("rx");
+	inst[no].name=strdup("rx");
+	inst[no].in=calloc(QLEN, sizeof(TPulse));
+	inst[no].connect=calloc(10,sizeof(int));
+	inst[no].idxtop=0;
+	inst[no].idxbottom=0;
+	
 
 //	printf("Read in %d lines\n", count);
 
@@ -207,6 +215,8 @@ int act(int m, TModule *module) {
 	case 'b':
 		out.val=in.val;
 	}
+
+	if((m==goal)&&(out.val==2)) printf("%s sends high after %ld pushes.\n", module[m].name, buttonPresses);
 	
 	for(int q=0; module[m].connect[q]; q++) {
 		push(module[m].connect[q], module, out);
@@ -230,7 +240,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	for(i=1; module[i].name; i++) {
+/*	for(i=1; module[i].name; i++) {
 		printf("Module %d (%s), type %c, connects to ", i, module[i].name, module[i].type);
 		for(int q=0; module[i].connect[q]; q++) {
 			printf("%d (%s), ", module[i].connect[q], module[module[i].connect[q]].name);
@@ -242,10 +252,12 @@ int main(int argc, char *argv[]) {
 		}
 		if(i == start) printf("[START]");
 		printf("\n");
-	}
+	}*/
 
+	if(!goal) goal = modNo("cl");
+	assert(goal);
 	TPulse button = {1,0};
-	for(long rep=0; rep<1000; rep++) {
+	while(1) {
 		push(start, module, button);
 		buttonPresses++;
 
@@ -253,6 +265,7 @@ int main(int argc, char *argv[]) {
 			int max=0, maxlen=0;
 			for(i=1; module[i].name; i++) {
 				int l = qlen(i, module);
+				if(l>=99999997) printf("Look after press %ld\n", buttonPresses);
 				if(l>maxlen) {
 					maxlen=l;
 					max=i;
@@ -269,6 +282,7 @@ int main(int argc, char *argv[]) {
 //	}
 
 	printf("Pulses: %ld low * %ld high = %ld\n", pulses[1], pulses[2], pulses[1] * pulses[2]);
+	printf("There were a total of %ld button presses\n", buttonPresses);
 
 	return 0;
 }
