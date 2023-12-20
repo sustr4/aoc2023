@@ -16,6 +16,7 @@
 //#define MAXY 10
 
 long pulses[3]={0,0,0};
+long buttonPresses = 0;
 
 int modNo(char *name) {
 	static char **names=NULL;
@@ -49,13 +50,19 @@ typedef struct {
 
 void push(int m, TModule *module, TPulse pulse) {
 
+	static int goal=0;
+
+	if(!goal) goal = modNo("rx");
+
+	if((m==goal) && (pulse.val == 1)) printf("rx got low after %ld button presses\n", buttonPresses);
+
 	if(!module[m].in) {
 		module[m].in=calloc(QLEN, sizeof(TPulse));
 		module[m].idxtop=0;
 		module[m].idxbottom=0;
 	}
 
-	printf("\t pushing %d from %d (%s) into the queue for %d (%s)\n", pulse.val, pulse.from, module[pulse.from].name, m, module[m].name);
+//	printf("\t pushing %d from %d (%s) into the queue for %d (%s)\n", pulse.val, pulse.from, module[pulse.from].name, m, module[m].name);
 
 	pulses[pulse.val]++; // Stats
 
@@ -64,9 +71,10 @@ void push(int m, TModule *module, TPulse pulse) {
 	assert(module[m].idxtop!=module[m].idxbottom);
 }
 
-int hasInput(int m, TModule *module) {
-	if(module[m].idxtop!=module[m].idxbottom) return 1;
-	return 0;
+int qlen(int m, TModule *module) {
+	if(module[m].idxtop==module[m].idxbottom) return 0;
+	
+	return module[m].idxtop-module[m].idxbottom>=0?module[m].idxtop-module[m].idxbottom:module[m].idxtop-module[m].idxbottom+QLEN;
 }
 
 TPulse pull(int m, TModule *module) {
@@ -162,7 +170,7 @@ TModule *readInput() {
 		count++;
 	}
 
-	printf("Read in %d lines\n", count);
+//	printf("Read in %d lines\n", count);
 
 	fclose(input);
 	if (line)
@@ -237,19 +245,22 @@ int main(int argc, char *argv[]) {
 	}
 
 	TPulse button = {1,0};
-	for(int rep=0; rep<1000; rep++) {
+	for(long rep=0; rep<1000; rep++) {
 		push(start, module, button);
+		buttonPresses++;
 
 		while(1) {
-			int something=0;
+			int max=0, maxlen=0;
 			for(i=1; module[i].name; i++) {
-				if(hasInput(i, module)) {
-					printf("There is input waiting for module %d (%s) (queue from %d to %d)\n", i, module[i].name, module[i].idxbottom, module[i].idxtop);
-					something=1;
-					act(i, module);
+				int l = qlen(i, module);
+				if(l>maxlen) {
+					maxlen=l;
+					max=i;
 				}
 			}
-			if(!something) break;
+			if(maxlen==0) break; // Nothing in any queue
+//					printf("There is input waiting for module %d (%s) (queue from %d to %d)\n", i, module[i].name, module[i].idxbottom, module[i].idxtop);
+			act(max, module);
 		}
 	}
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
