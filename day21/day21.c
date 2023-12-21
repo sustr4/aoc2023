@@ -10,7 +10,7 @@
 #define INPUT "input.txt"
 #define MAXX 131
 #define MAXY 131
-#define GOAL 64
+#define GOAL 196
 //#define INPUT "unit1.txt"
 //#define MAXX 11
 //#define MAXY 11
@@ -38,8 +38,8 @@ int comp(const void *a, const void *b)
 // Print a two-dimensional array
 void printDist (int **dist) {
 	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
+	for(y=0; y<MAXY*3; y++) {
+		for(x=0; x<MAXX*3; x++) {
 			if(dist[y][x])	printf("%d", dist[y][x]%10);
 			else printf(" ");
 		}
@@ -49,8 +49,8 @@ void printDist (int **dist) {
 
 void printMap (char **map) {
 	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
+	for(y=0; y<MAXY*3; y++) {
+		for(x=0; x<MAXX*3; x++) {
 			printf("%c", map[y][x]);
 		}
 		printf("\n");
@@ -64,8 +64,8 @@ int dy[] = { -1,  0, 0, 1 };
 int dx[] = {  0, -1, 1, 0 };
 char mapnb(char **map, int y, int x, int n) {
 	assert((n>=0) && (n<4));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
+	if((y+dy[n]<0) || (y+dy[n]>=MAXY*3) ||
+	   (x+dx[n]<0) || (x+dx[n]>=MAXX*3)) return 0;
 	return(map[y+dy[n]][x+dx[n]]);
 }
 
@@ -84,14 +84,20 @@ char **readInput() {
 
 	// Allocate a two-dimensional arrray of chars
 	int x=0, y=0;
-	char **map=calloc(MAXY,sizeof(char*));
-	for(int iter=0; iter<MAXY; iter++) map[iter]=calloc(MAXX,sizeof(char));
+	char **map=calloc(MAXY*3,sizeof(char*));
+	for(int iter=0; iter<MAXY*3; iter++) map[iter]=calloc(MAXX*3,sizeof(char));
 
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
 
 		// Read into map
-		for(x=0; x<MAXX; x++) map[y][x] = line[x];
+		for(x=0; x<MAXX; x++) {
+			for(int a=0; a<3; a++) {
+				for(int b=0; b<3; b++) {
+					map[y+a*MAXY][x+b*MAXY] = line[x];
+				}
+			}
+		}
 		y++;
 	}
 
@@ -107,8 +113,8 @@ char **readInput() {
 int cnt(int **dist) {
 	int ret=0;
 
-	for(int y=0; y<MAXY; y++) {
-		for(int x=0; x<MAXX; x++) {
+	for(int y=0; y<MAXY*3; y++) {
+		for(int x=0; x<MAXX*3; x++) {
 			if((dist[y][x]) && (dist[y][x]<=GOAL+1)) ret ++;
 		}
 	}
@@ -118,20 +124,21 @@ int cnt(int **dist) {
 int main(int argc, char *argv[]) {
 
 	char **map=readInput();
-	int **dist=calloc(MAXY,sizeof(int*));
-	for(int iter=0; iter<MAXY; iter++) dist[iter]=calloc(MAXX,sizeof(int));
+	int **dist=calloc(MAXY*3,sizeof(int*));
+	for(int iter=0; iter<MAXY*3; iter++) dist[iter]=calloc(MAXX*3,sizeof(int));
 
-	for(int y=0; y<MAXY; y++)
-		for(int x=0; x<MAXX; x++)
+	int starts=0;
+	for(int y=0; y<MAXY*3; y++)
+		for(int x=0; x<MAXX*3; x++)
 			if(map[y][x]=='S') {
-				dist[y][x]=1;
 				map[y][x]='.';
+				if(++starts==5) dist[y][x]=1;
 			}
 
 	int s;
 	for(s=1; s<=GOAL; s++) {
-		for(int y=0; y<MAXY; y++) {
-			for(int x=0; x<MAXX; x++) {
+		for(int y=0; y<MAXY*3; y++) {
+			for(int x=0; x<MAXX*3; x++) {
 				if(dist[y][x]!=s) continue;
 //				printf("[%d][%d]: %d!=%d\n", y, x, dist[y][x], s);
 				for(int n=0; n<4; n++) {
@@ -143,8 +150,8 @@ int main(int argc, char *argv[]) {
 				
 			}
 		}
-		for(int y=0; y<MAXY; y++) 
-			for(int x=0; x<MAXX; x++) if(dist[y][x]<=s) dist[y][x]=0;
+		for(int y=0; y<MAXY*3; y++) 
+			for(int x=0; x<MAXX*3; x++) if(dist[y][x]<=s) dist[y][x]=0;
 	}
 
 	printDist(dist);
@@ -154,7 +161,9 @@ int main(int argc, char *argv[]) {
 //		printf("%d\n", array[i]);
 //	}
 
+
 	printf("Reached %d tiles.\n", cnt(dist));
+	printf("26501365 is like %d. Go %d\n", 26501365 % MAXX, 26501365 % MAXX + MAXX);
 
 	return 0;
 }
