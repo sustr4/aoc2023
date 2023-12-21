@@ -40,7 +40,8 @@ void printDist (int **dist) {
 	int x,y;
 	for(y=0; y<MAXY; y++) {
 		for(x=0; x<MAXX; x++) {
-			printf("%d", dist[y][x]%10);
+			if(dist[y][x])	printf("%d", dist[y][x]%10);
+			else printf(" ");
 		}
 		printf("\n");
 	}
@@ -75,16 +76,11 @@ char **readInput() {
 	char * line = NULL;
 	size_t len = 0;
 	ssize_t read;
-	int count = 0;
 
 	input = fopen(INPUT, "r");
 	if (input == NULL) {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
-
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TPoint *inst=(TPoint*)calloc(MAXX, sizeof(TPoint));
 
 	// Allocate a two-dimensional arrray of chars
 	int x=0, y=0;
@@ -97,23 +93,6 @@ char **readInput() {
 		// Read into map
 		for(x=0; x<MAXX; x++) map[y][x] = line[x];
 		y++;
-
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
-
-		// Read into array
-		// sscanf(line,"%d,%d",
-		//	&(inst[count].x),
-		//	&(inst[count].y));
-
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
-
-		count++;
 	}
 
 	fclose(input);
@@ -138,19 +117,16 @@ int cnt(int **dist) {
 
 int main(int argc, char *argv[]) {
 
-//	TPoint *array;
-//	int i=0;	
-//	array = readInput();
 	char **map=readInput();
 	int **dist=calloc(MAXY,sizeof(int*));
 	for(int iter=0; iter<MAXY; iter++) dist[iter]=calloc(MAXX,sizeof(int));
 
 	for(int y=0; y<MAXY; y++)
-		for(int x=0; x<MAXX; x++) if(map[y][x]=='S') {
-				printf("Start at [%d,%d]\n", x, y);
+		for(int x=0; x<MAXX; x++)
+			if(map[y][x]=='S') {
 				dist[y][x]=1;
+				map[y][x]='.';
 			}
-
 
 	int s;
 	for(s=1; s<=GOAL; s++) {
