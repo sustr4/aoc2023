@@ -8,11 +8,7 @@
 
 // Boundary and input file definitions, set as required
 #define INPUT "input.txt"
-#define MAXX 76
-#define MAXY 26
 //#define INPUT "unit1.txt"
-//#define MAXX 10
-//#define MAXY 10
 
 #define MAXBR 1500
 
@@ -20,45 +16,11 @@
 typedef struct {
 	int *c;
 	int **fills;
+	int fell;
 } TBrick;
 
 void printBrick(int b, TBrick *brick) {
 	for(int j=0; brick[b].fills[j]; j++) printf("[%d,%d,%d], ", brick[b].fills[j][0], brick[b].fills[j][1], brick[b].fills[j][2]);
-}
-
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
-
-
-// Print a two-dimensional array
-void printMap (char **map) {
-	int x,y;
-	for(y=0; y<MAXY; y++) {
-		for(x=0; x<MAXX; x++) {
-			printf("%c", map[y][x]);
-		}
-		printf("\n");
-	}
-}
-// Full block character for maps █ and border elements ┃━┗┛┏┓
-// Color printf("\033[1;31mR \033[1;32mG \033[1;34mB \033[0moff\n");
-
-// Retrieve nth neighbor from a map
-int dy[] = { -1, -1, -1, 0, 0, 1, 1, 1};
-int dx[] = { -1, 0, 1, -1, 1, -1, 0, 1};
-char mapnb(char **map, int y, int x, int n) {
-	assert((n>=0) && (n<8));
-	if((y+dy[n]<0) || (y+dy[n]>=MAXY) ||
-	   (x+dx[n]<0) || (x+dx[n]>=MAXX)) return 0;
-	return(map[y+dy[n]][x+dx[n]]);
 }
 
 // Read input file line by line (e.g., into an array)
@@ -75,13 +37,7 @@ TBrick *readInput() {
 		exit(1); }
 
 	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
 	TBrick *inst=(TBrick*)calloc(MAXBR, sizeof(TBrick));
-
-	// Allocate a two-dimensional arrray of chars
-	// int x=0, y=0;
-	// char **map=calloc(MAXY,sizeof(char*));
-	// for(int iter=0; iter<MAXY; iter++) map[iter]=calloc(MAXX,sizeof(char));
 
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
@@ -132,7 +88,7 @@ int canfall(int b, TBrick *brick) {
 	for(int j=0; brick[b].fills[j]; j++) if(brick[b].fills[j][2]<=1) return 0;
 
 	int i;
-	for(i=0; brick[i].c; i++) {
+	for(i=0; brick[i].fills; i++) {
 		if(i==b) continue;
 		if(!brick[i].fills) continue;
 		for(int j=0; brick[i].fills[j]; j++) {
@@ -147,12 +103,13 @@ int canfall(int b, TBrick *brick) {
 }
 
 void fall(int b, TBrick *brick) {
-	printf("Brick %d falling from ", b);
-	printBrick(b, brick);
+//	printf("Brick %d falling from ", b);
+//	printBrick(b, brick);
 	for(int j=0; brick[b].fills[j]; j++) brick[b].fills[j][2]--;
-	printf(" to ");
-	printBrick(b, brick);
-	printf("\n");
+//	printf(" to ");
+//	printBrick(b, brick);
+//	printf("\n");
+	brick[b].fell=1;
 }
 
 int main(int argc, char *argv[]) {
@@ -164,7 +121,7 @@ int main(int argc, char *argv[]) {
 	int change;
 	while(1) {
 		change=0;
-		for(i=0; brick[i].c; i++) {
+		for(i=0; brick[i].fills; i++) {
 			if(canfall(i, brick)) {
 				fall(i, brick);
 				change=1;
@@ -174,37 +131,70 @@ int main(int argc, char *argv[]) {
 	}
 
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-	for(i=0; brick[i].c; i++) {
+/*	for(i=0; brick[i].fills; i++) {
 		printf("Brick %d", i);
 //		for(int j=0; j<6; j++) printf("%3d %c ", brick[i].c[j], j==2?'~':' '); 
 		printf("\n\tFills: ");
 		printBrick(i, brick);
 		if(canfall(i, brick)) printf("\n\tCan fall");
 		printf("\n");
-	}
+	}*/
 
 	int sum = 0;
 
-	for(i=0; brick[i].c; i++) {
-		int safe = 1;
+	for(i=0; brick[i].fills; i++) {
 
-		int **remove;
-		remove=brick[i].fills;
-		brick[i].fills=NULL;
-
-		for(int b=0; brick[b].c; b++) {
-			if(b == i) continue;
-			if(canfall(b, brick)) {
-				printf("Brick %d will fall if %d is removed\n", b, i);
-				safe = 0;
-				break;
+		printf("Trying to remove brick %d\n", i);
+		// Make a working copy of the stack but leave out brick i
+		TBrick *newstack=(TBrick*)calloc(MAXBR, sizeof(TBrick));
+		int new=0;
+		for(int y=0; brick[y].fills; y++) {
+			if(y==i) {
+//				printf("Leaving out brick %d from copy\n", y);
+				continue; // Leave out brick i
 			}
+			int len;
+			for(len=0; brick[y].fills[len]; len++);
+			newstack[new].fills=calloc(len+1, sizeof(int*));
+			for(len=0; brick[y].fills[len]; len++) {
+				newstack[new].fills[len]=calloc(3, sizeof(int));
+				for(int j=0; j<3; j++) {
+					newstack[new].fills[len][j]=brick[y].fills[len][j];
+				}
+			}
+			newstack[new].fell=0;
+			new++;
 		}
-		if(safe) sum++;
-		brick[i].fills=remove;
+		
+		while(1) {
+			change=0;
+			for(int ii=0; newstack[ii].fills; ii++) {
+				if(canfall(ii, newstack)) {
+					fall(ii, newstack);
+					change=1;
+				}
+			}
+			if(!change) break;
+		}
+
+		int locsum=0;
+		for(int ii=0; newstack[ii].fills; ii++) if(newstack[ii].fell) locsum++;
+
+		printf("Pulled brick %d, %d bricks fell\n", i, locsum);
+		sum+=locsum;
+		
+
+		for(int y=0; brick[y].fills; y++) {
+			for(int len=0; (newstack[y].fills) && (newstack[y].fills[len]); len++) {
+//				printf("Freeing newstack[%d].fills[%d]\n", y, len);
+				free(newstack[y].fills[len]);
+			}
+			free(newstack[y].fills);
+		}
+		free(newstack);
 	}
 
-	printf("%d bricks can be safely removed\n", sum);
+	printf("%d bricks fell in total\n", sum);
 
 	return 0;
 }
