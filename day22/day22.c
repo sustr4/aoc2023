@@ -7,12 +7,12 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-#define INPUT "input.txt"
-#define MAXX 76
-#define MAXY 26
-//#define INPUT "unit1.txt"
-//#define MAXX 10
-//#define MAXY 10
+//#define INPUT "input.txt"
+//#define MAXX 76
+//#define MAXY 26
+#define INPUT "unit1.txt"
+#define MAXX 10
+#define MAXY 10
 
 #define MAXBR 1500
 
@@ -82,13 +82,6 @@ TBrick *readInput() {
 	while ((read = getline(&line, &len, input)) != -1) {
 		line[strlen(line)-1] = 0; // Truncate the NL
 
-		// Read into map
-		// for(x=0; x<MAXX; x++) map[y][x] = line[x];
-		// y++;
-
-		// Copy to string
-		//asprintf(&(inst[count]), "%s", line);	
-
 		// Read into array
 		inst[count].c=calloc(6,sizeof(int));
 		sscanf(line,"%d,%d,%d~%d,%d,%d",
@@ -99,12 +92,20 @@ TBrick *readInput() {
 			&(inst[count].c[4]),
 			&(inst[count].c[5]));
 
-		// Read tokens from single line
-		//char *token;
-		//token = strtok(line, ",");
-		//while( 1 ) {
-		//	if(!(token = strtok(NULL, ","))) break;
-		//}
+		int dir=0;
+		int len=0;
+		for(int i = 0; i<3; i++)
+			if (inst[count].c[i]!=inst[count].c[i+3]) {
+				dir=i;
+				len=inst[count].c[i+3] - inst[count].c[i];
+			}
+		assert(len>0);
+		inst[count].fills=calloc(len+2, sizeof(int*));
+		for(int i = 0; i<=len; i++) {
+			inst[count].fills[i]=calloc(3, sizeof(int));
+			for(int j = 0; j<3; j++) inst[count].fills[i][j]=inst[count].c[j];
+			inst[count].fills[i][dir]+=i;
+		}	
 
 		count++;
 	}
@@ -124,6 +125,8 @@ int main(int argc, char *argv[]) {
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 	for(i=0; brick[i].c; i++) {
 		for(int j=0; j<6; j++) printf("%3d %c ", brick[i].c[j], j==2?'~':' '); 
+		printf("\n\tFills: ");
+		for(int j=0; brick[i].fills[j]; j++) printf("[%d,%d,%d], ", brick[i].fills[j][0], brick[i].fills[j][1], brick[i].fills[j][2]);
 		printf("\n");
 	}
 
