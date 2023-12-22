@@ -7,12 +7,12 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-//#define INPUT "input.txt"
-//#define MAXX 76
-//#define MAXY 26
-#define INPUT "unit1.txt"
-#define MAXX 10
-#define MAXY 10
+#define INPUT "input.txt"
+#define MAXX 76
+#define MAXY 26
+//#define INPUT "unit1.txt"
+//#define MAXX 10
+//#define MAXY 10
 
 #define MAXBR 1500
 
@@ -21,6 +21,10 @@ typedef struct {
 	int *c;
 	int **fills;
 } TBrick;
+
+void printBrick(int b, TBrick *brick) {
+	for(int j=0; brick[b].fills[j]; j++) printf("[%d,%d,%d], ", brick[b].fills[j][0], brick[b].fills[j][1], brick[b].fills[j][2]);
+}
 
 // Comparator function example
 int comp(const void *a, const void *b)
@@ -96,10 +100,15 @@ TBrick *readInput() {
 		int len=0;
 		for(int i = 0; i<3; i++)
 			if (inst[count].c[i]!=inst[count].c[i+3]) {
+				if(inst[count].c[i+3] < inst[count].c[i]) { // Swap values if they run the other way
+					int temp = inst[count].c[i+3];
+					inst[count].c[i+3] = inst[count].c[i];
+					inst[count].c[i] = temp;
+				}
 				dir=i;
 				len=inst[count].c[i+3] - inst[count].c[i];
 			}
-		assert(len>0);
+		assert(len>=0);
 		inst[count].fills=calloc(len+2, sizeof(int*));
 		for(int i = 0; i<=len; i++) {
 			inst[count].fills[i]=calloc(3, sizeof(int));
@@ -117,18 +126,85 @@ TBrick *readInput() {
 	return inst;
 }
 
+int canfall(int b, TBrick *brick) {
+
+	if(!brick[b].fills) return 0;
+	for(int j=0; brick[b].fills[j]; j++) if(brick[b].fills[j][2]<=1) return 0;
+
+	int i;
+	for(i=0; brick[i].c; i++) {
+		if(i==b) continue;
+		if(!brick[i].fills) continue;
+		for(int j=0; brick[i].fills[j]; j++) {
+			for(int y=0; brick[b].fills[y]; y++) {
+				if((brick[i].fills[j][0] == brick[b].fills[y][0]) &&
+				   (brick[i].fills[j][1] == brick[b].fills[y][1]) &&
+				   (brick[i].fills[j][2] == brick[b].fills[y][2]-1)) return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+void fall(int b, TBrick *brick) {
+	printf("Brick %d falling from ", b);
+	printBrick(b, brick);
+	for(int j=0; brick[b].fills[j]; j++) brick[b].fills[j][2]--;
+	printf(" to ");
+	printBrick(b, brick);
+	printf("\n");
+}
+
 int main(int argc, char *argv[]) {
 
 	int i=0;	
 	TBrick *brick = readInput();
 
+	// Let all fall
+	int change;
+	while(1) {
+		change=0;
+		for(i=0; brick[i].c; i++) {
+			if(canfall(i, brick)) {
+				fall(i, brick);
+				change=1;
+			}
+		}
+		if(!change) break;
+	}
+
 //	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
 	for(i=0; brick[i].c; i++) {
-		for(int j=0; j<6; j++) printf("%3d %c ", brick[i].c[j], j==2?'~':' '); 
+		printf("Brick %d", i);
+//		for(int j=0; j<6; j++) printf("%3d %c ", brick[i].c[j], j==2?'~':' '); 
 		printf("\n\tFills: ");
-		for(int j=0; brick[i].fills[j]; j++) printf("[%d,%d,%d], ", brick[i].fills[j][0], brick[i].fills[j][1], brick[i].fills[j][2]);
+		printBrick(i, brick);
+		if(canfall(i, brick)) printf("\n\tCan fall");
 		printf("\n");
 	}
+
+	int sum = 0;
+
+	for(i=0; brick[i].c; i++) {
+		int safe = 1;
+
+		int **remove;
+		remove=brick[i].fills;
+		brick[i].fills=NULL;
+
+		for(int b=0; brick[b].c; b++) {
+			if(b == i) continue;
+			if(canfall(b, brick)) {
+				printf("Brick %d will fall if %d is removed\n", b, i);
+				safe = 0;
+				break;
+			}
+		}
+		if(safe) sum++;
+		brick[i].fills=remove;
+	}
+
+	printf("%d bricks can be safely removed\n", sum);
 
 	return 0;
 }
