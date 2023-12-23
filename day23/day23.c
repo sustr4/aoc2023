@@ -7,12 +7,12 @@
 #include<assert.h>
 
 // Boundary and input file definitions, set as required
-//#define INPUT "input.txt"
-//#define MAXX 141
-//#define MAXY 141
-#define INPUT "unit1.txt"
-#define MAXX 23
-#define MAXY 23
+#define INPUT "input.txt"
+#define MAXX 141
+#define MAXY 141
+//#define INPUT "unit1.txt"
+//#define MAXX 23
+//#define MAXY 23
 //#define INPUT "unit2.txt"
 //#define MAXX 5
 //#define MAXY 5
@@ -23,18 +23,10 @@ typedef struct {
 	int y;
 	int *nb;
 	int *dist;
+	int visited;
 } TNode;
 
-// Comparator function example
-int comp(const void *a, const void *b)
-{
-	const int *da = (const int *) a;
-	const int *db = (const int *) b;
-	return (*da > *db) - (*da < *db);
-}
-
-// Example for calling qsort()
-//qsort(array,count,sizeof(),comp);
+int max = 0;
 
 // Retrieve nth neighbor from a map
 int dy[] = { -1,  0, 0,  1 };
@@ -56,8 +48,6 @@ void printMap (char **map) {
 		printf("\n");
 	}
 }
-// Full block character for maps █ and border elements ┃━┗┛┏┓
-// Color printf("\033[1;31mR \033[1;32mG \033[1;34mB \033[0moff\n");
 
 void printDist (int **dist) {
 	int x,y;
@@ -108,7 +98,6 @@ void printNodes (TNode *node, int **noderef, char **map) {
 
 // Read input file line by line (e.g., into an array)
 char **readInput() {
-//int readInput() {
 	FILE * input;
 	char * line = NULL;
 	size_t len = 0;
@@ -118,10 +107,6 @@ char **readInput() {
 	if (input == NULL) {
 		fprintf(stderr,"Failed to open input file\n");
 		exit(1); }
-
-	// Allocate one-dimensional array of strings
-	// char **inst=(char**)calloc(MAXX, sizeof(char*));
-	// TNode *inst=(TNode*)calloc(MAXX, sizeof(TNode));
 
 	// Allocate a two-dimensional arrray of chars
 	int x=0, y=0;
@@ -154,12 +139,33 @@ int countnodes(char **map) {
 	return ret;
 }
 
+int step(char **map, TNode *node, int nn, int dist) {
+
+	if(node[nn].visited) goto cleanup;
+	node[nn].visited=1;
+
+	if(node[nn].y>=MAXY-1) {
+		if(dist>max) {
+			max=dist;
+			printf("New longest path found %d through ", max);
+			for(int l=0; (node[l].y) || (node[l].x); l++) if(node[l].visited) printf("%d,", l);
+			printf("\n");
+			goto cleanup;
+		}
+	}
+
+	for(int nb=0; node[nn].dist[nb]; nb++) {
+		if(node[node[nn].nb[nb]].visited) continue;
+		step(map, node, node[nn].nb[nb], dist + node[nn].dist[nb]);
+	}
+cleanup:
+	node[nn].visited=0;
+	return 0;
+}
 
 int main(int argc, char *argv[]) {
 
 	TNode *node = NULL;
-//	int i=0;node = NULLarray = readInput();
-//	for(x=0; x<MAXX; x++) if(map[0][x]=='.') dist[0][x]=1;
 	char **map=readInput();
 
 	int x=0, y=0;
@@ -249,12 +255,7 @@ int main(int argc, char *argv[]) {
 
 	printNodes(node, noderef, map);
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-//	for(i=0; array[i]; i++) {
-//		printf("%d\n", array[i]);
-//	}
+	step(map, node, 0, 0);
 
-
-//	for(x=0; x<MAXX; x++) if(map[MAXY-1][x]=='.') printf("Last field [%d,%d]: %d. Search ended after %d steps\n", x, MAXY-1, dist[MAXY-1][x]-1, s);
 	return 0;
 }
