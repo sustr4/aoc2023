@@ -8,12 +8,12 @@
 #include<math.h>
 
 // Boundary and input file definitions, set as required
-/*#define INPUT "input.txt"
-#define MAXX 301
-#define MAXY 301
+#define INPUT "input.txt"
+#define MAXX 300
+#define MAXY 300
 #define LOW 200000000000000
 #define HIGH 400000000000000 /**/
-#define INPUT "unit1.txt"
+/*#define INPUT "unit1.txt"
 #define MAXX 5
 #define MAXY 5
 #define LOW 7
@@ -128,19 +128,36 @@ void printStone(int i, TStone *stone) {
 	printf(")\n");
 }
 
+void assign(double *to, double *from) {
+	for(int q=0; q<3; q++) to[q]=from[q];
+}
+
 int main(int argc, char *argv[]) {
 
 	int i=0;	
 	TStone *stone = readInput();
 	readInput();
 
-//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
-	for(i=0; i<MAXX-1; i++) {
-		printStone(i, stone);
-		for(int ii=i+1; ii<MAXX; ii++) {
-			printf("On "); printStone(ii, stone);
+	double **after;
+	double ***loc;
 
-			double intersection[3];
+	after=calloc(MAXX, sizeof(double*));
+	loc=calloc(MAXX, sizeof(double**));
+	for(int iter = 0; iter < MAXX; iter++) {
+		after[iter]=calloc(MAXX, sizeof(double));
+		loc[iter]=calloc(MAXX, sizeof(double*));
+		for(int iiter = 0; iiter < MAXX; iiter++) loc[iter][iiter]=calloc(3, sizeof(double));
+	}
+
+	int sum=0;
+
+//	#pragma omp parallel for private(<uniq-var>) shared(<shared-var>)
+	for(i=0; i<MAXX; i++) printStone(i, stone);
+	for(i=0; i<MAXX-1; i++) {
+//		printStone(i, stone);
+		for(int ii=i+1; ii<MAXX; ii++) {
+//			printf("On "); printStone(ii, stone);
+
 
 			double x = (double)stone[i].p[0];
 			double a = (double)stone[i].v[0];
@@ -152,14 +169,41 @@ int main(int argc, char *argv[]) {
 			double d = (double)stone[ii].v[1];
 
 			double q = (o*a + c*y - c*x - p*a) / (d*a - c*b);
+			double t = (y - x + q*b) / a;
 
+			if(isinf(q)) continue;
+
+			double *intersection=calloc(3, sizeof(double));
 			intersection[0] = y + q*b;
 			intersection[1] = p + q*d;
 
-			printf("Intersect: [%f, %f]\n", intersection[0], intersection[1]);
-			
+//			printf("Intersect: [%f, %f]\n", intersection[0], intersection[1]);
+			after[i][ii]=t;
+			after[ii][i]=q;
+			assign(loc[i][ii], intersection);
+			assign(loc[ii][i], intersection);
+
+			if((q<0) ||
+			   (t<0) ||
+			   (intersection[0]<LOW) ||
+			   (intersection[1]<LOW) ||
+			   (intersection[0]>HIGH) ||
+			   (intersection[1]>HIGH)) { ; }
+			else { sum++; }
+	
+			free(intersection);	
 		}
 	}
+
+	for(i=0; i<MAXX; i++) {
+		printf("%d: ", i);
+		for(int ii=0; ii<MAXX; ii++) {
+			printf("%7.1f", after[i][ii]);
+		}
+		printf("\n");
+	}
+
+	printf("%d paths intersect\n", sum);
 
 	return 0;
 }
