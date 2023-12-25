@@ -19,6 +19,7 @@
 char **modname;
 int **connTo;
 int **connection;
+int **quickconnect;
 
 int modno(char *name) {
 
@@ -156,8 +157,17 @@ int readInput() {
 //	return map;
 }
 
+int colnb(int *group, int **ct, int from, int g) {
+	group[from]=g;
+	for(int x=1; x<=quickconnect[from][0]; x++) {
+		int nx = quickconnect[from][x];
+		if((ct[from][nx]) && (!group[nx])) colnb(group, ct, nx, g);
+	}
+	return 0;
+}
+
 int findGrp(int *group, int **ct) {
-	int y,x;
+	int y;
 	int grp=1;
 
 	// Find first module with no group
@@ -165,23 +175,8 @@ int findGrp(int *group, int **ct) {
 	while(1) {
 		for(y=0; (y<MAXY) && (group[y]!=0); y++);
 		if(y==MAXY) break;
-		group[y]=grp;
 
-		while(1) {
-			int change=0;
-			for(y=0; y<MAXY; y++) {
-				if(group[y]!=grp) continue;
-				for(x=0; x<MAXY; x++) {
-					if(!ct[y][x]) continue;
-					if(group[x]==grp) continue;
-					group[x]=grp;
-					change=1;
-				}
-			}
-
-
-			if(!change) break;
-		}
+		colnb(group, ct, y, grp);
 
 		grp++;
 	}
@@ -189,12 +184,37 @@ int findGrp(int *group, int **ct) {
 	return grp -1;
 }
 
+void fillqc() {
+
+	quickconnect = calloc(MAXY+1, sizeof(int*));
+
+	for(int y=0; y<MAXY; y++) {
+		int conns=0;
+		for(int x=0; x<MAXY; x++) if(connTo[y][x]) conns++;
+		quickconnect[y]=calloc(conns+1, sizeof(int));
+		quickconnect[y][0]=conns;
+		conns=1;
+		for(int x=0; x<MAXY; x++) if(connTo[y][x]) quickconnect[y][conns++]=x;
+	}
+}
+
 int main(int argc, char *argv[]) {
 
 //	TPoint *array;
 //	int i=0;	
 //	array = readInput();
+	int rgFrom=0;
+	int rgTo=0;
 	readInput();
+
+	fillqc();
+
+	printf("argc == %d\n", argc);
+
+	if(argc>=3) {
+		rgFrom=atoi(argv[1]);
+		rgTo=atoi(argv[2]);
+	}
 
 	int r0, r1, r2;
 /*	int t[3];
@@ -217,19 +237,24 @@ int main(int argc, char *argv[]) {
 	int **tempConn=calloc(MAXY,sizeof(int*));
 	for(int iter=0; iter<MAXY; iter++) {
 		tempConn[iter]=calloc(MAXX,sizeof(int)); }
+	for(int iter=0; iter<MAXY; iter++) {
+		memcpy(tempConn[iter], connTo[iter], MAXY*sizeof(int));
+	}
 
 	int conns;
 	for(conns=0; connection[conns]; conns++);
 	printf("There are %d connections in total\n", conns);
 //	#pragma omp parallel for shared(found)
-	for(r0=0; r0<conns-2; r0++) {
+	if(!rgTo) rgTo=conns-3;
+	printf("Solving between %d and %d.\n", rgFrom, rgTo);
+	for(r0=rgFrom; r0<=rgTo; r0++) {
+		printf("%d\n", r0);
 		for(r1=r0+1; r1<conns-1; r1++) {
-			printf("%d,%d\n", r0,r1);
 			for(r2=r1+1; r2<conns; r2++) {
 
-				for(int iter=0; iter<MAXY; iter++) {
-					memcpy(tempConn[iter], connTo[iter], MAXY*sizeof(int));
-				}
+//				for(int iter=0; iter<MAXY; iter++) {
+//					memcpy(tempConn[iter], connTo[iter], MAXY*sizeof(int));
+//				}
 //				printf("Removing %d, %d and %d\n", r[0], r[1], r[2]);
 
 				tempConn[connection[r0][0]][connection[r0][1]] = 0;
@@ -267,6 +292,12 @@ int main(int argc, char *argv[]) {
 					return 0;
 				}
 
+				tempConn[connection[r0][0]][connection[r0][1]] = 1;
+				tempConn[connection[r0][1]][connection[r0][0]] = 1;
+				tempConn[connection[r1][0]][connection[r1][1]] = 1;
+				tempConn[connection[r1][1]][connection[r1][0]] = 1;
+				tempConn[connection[r2][0]][connection[r2][1]] = 1;
+				tempConn[connection[r2][1]][connection[r2][0]] = 1;
 //				for(int iter=0; iter<MAXY; iter++) free(tempConn[iter]);
 //				free(tempConn);
 				free(group);
