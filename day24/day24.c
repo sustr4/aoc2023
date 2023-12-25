@@ -8,12 +8,12 @@
 #include<math.h>
 
 // Boundary and input file definitions, set as required
-#define INPUT "input.txt"
+/*#define INPUT "input.txt"
 #define MAXX 300
 #define MAXY 300
 #define LOW 200000000000000
 #define HIGH 400000000000000 /**/
-/*#define INPUT "unit1.txt"
+#define INPUT "unit1.txt"
 #define MAXX 5
 #define MAXY 5
 #define LOW 7
@@ -134,7 +134,7 @@ void assign(double *to, double *from) {
 
 int main(int argc, char *argv[]) {
 
-	int i=0;	
+	int i=0;
 	TStone *stone = readInput();
 	readInput();
 
@@ -203,7 +203,90 @@ int main(int argc, char *argv[]) {
 		printf("\n");
 	}
 
+
 	printf("%d paths intersect\n", sum);
+	for(int i=0; i<3; i++) {
+		for(int y=0; y<3; y++) {
+			// Left side:
+			printf("%ld%c%ld%c",
+				stone[i].p[y],
+				stone[i].v[y]<0?'-':'+',
+				labs(stone[i].v[y]),
+				's'+i);
+			
+			printf("=");
+			// Right side:
+			printf("%ld%c%ldv+%c*%c",
+				stone[3].p[y],
+				stone[3].v[y]<0?'-':'+',
+				labs(stone[3].v[y]),
+				'a'+y%3,
+				'x'+i);
+			// End of line
+			if((i!=2) || (y!=2)) printf(",");
+			printf("\n");
+		}
+	}
+
+	
+	for(int i=0; i<4; i++) printf("(declare-const %c Real)\n", 's'+i);
+	for(int i=0; i<3; i++) printf("(declare-const %c Real)\n", 'a'+i);
+	for(int i=0; i<3; i++) printf("(declare-const %c Real)\n", 'x'+i);
+	printf("\n");
+
+
+	// Generate smp2
+	for(int i=0; i<3; i++) {
+		for(int y=0; y<3; y++) {
+			// Preamble
+			printf("(assert (= ");
+			// Left side:
+			printf("(%c %ld (* %c %ld)",
+				stone[i].v[y]<0?'-':'+',
+				stone[i].p[y],
+				's'+i,
+				labs(stone[i].v[y]));
+			
+			printf(") (");
+			// Right side:
+			printf("+ (%c %ld (* v %ld))",
+				stone[3].v[y]<0?'-':'+',
+				stone[3].p[y],
+				labs(stone[3].v[y]));
+
+
+			printf(" (* %c %c)",
+				'a'+y%3,
+				'x'+i);
+			// End of line
+			printf(")))\n");
+		}
+	}
+	printf("(check-sat)\n");
+	for(int i=0; i<3; i++) printf("(get-value (%c))\n", 'a'+i);
+	for(int i=0; i<3; i++) printf("(get-value (%c))\n", 'x'+i);
+
+	for(int i=0; i<3; i++) {
+		for(int y=0; y<3; y++) {
+			// Left side:
+			printf("solver.add(%ld %c %ld * %c",
+				stone[i].p[y],
+				stone[i].v[y]<0?'-':'+',
+				labs(stone[i].v[y]),
+				's'+i);
+			
+			printf(" == ");
+			// Right side:
+			printf("%ld %c %ld * v + %c * %c",
+				stone[3].p[y],
+				stone[3].v[y]<0?'-':'+',
+				labs(stone[3].v[y]),
+				'a'+y%3,
+				'x'+i);
+			// End of line
+			printf(")\n");
+		}
+	}
 
 	return 0;
 }
